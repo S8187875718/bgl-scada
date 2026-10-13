@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BGL Gas Network Control - Industrial P&ID SCADA (FastAPI Powered)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=3.0, user-scalable=yes">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #f1f5f9;
+      --pipe-yellow: #f59e0b;
+      --pipe-gray: #cbd5e1;
+      --gas-green: #10b981;
+      --gas-red: #ef4444;
+      --bgl-blue: #0284c7;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --font-body: 'Inter', sans-serif;
+      --font-tech: 'Chakra Petch', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-page);
+      font-family: var(--font-body);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header.bgl-header {
+      position: relative;
+      background: linear-gradient(180deg, #99cbf7 0%, #bce0fd 30%, #d8effe 65%, #eff7fe 100%);
+      border-bottom: 3px solid #0284c7;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 80px;
+      box-shadow: 0 2px 10px rgba(0, 130, 200, 0.15);
+    }
+
+    .brand-area { display: flex; align-items: center; gap: 12px; }
+    .bgl-logo-img {
+      width: 54px; height: 54px; object-fit: contain;
+      border-radius: 50%; background: #ffffff; padding: 2px;
+      border: 2px solid #22c55e; flex-shrink: 0;
+    }
+    .brand-text h1 { font-size: 1.22rem; font-weight: 800; color: #0c4a6e; line-height: 1.15; }
+    .brand-text p { font-size: 0.74rem; color: #0284c7; font-weight: 600; }
+
+    .overview-kpi-bar {
+      background: #ffffff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 14px;
+      display: flex; align-items: center; gap: 8px; overflow-x: auto;
+    }
+    .kpi-card {
+      border-radius: 8px; padding: 4px 10px; min-width: 70px; text-align: center;
+      display: flex; flex-direction: column; justify-content: center; flex-shrink: 0;
+    }
+    .kpi-card .num { font-family: var(--font-tech); font-size: 1.05rem; font-weight: 800; line-height: 1.1; }
+    .kpi-card .lbl { font-size: 0.62rem; font-weight: 700; margin-top: 1px; white-space: nowrap; }
+    .kpi-drs { background: #eff6ff; border: 1.5px solid #bfdbfe; color: #1d4ed8; }
+    .kpi-vc { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #15803d; }
+    .kpi-sr { background: #faf5ff; border: 1.5px solid #e9d5ff; color: #7e22ce; }
+    .kpi-ipng { background: #fffbeb; border: 1.5px solid #fde68a; color: #b45309; }
+    .kpi-cpng { background: #fff1f2; border: 1.5px solid #fecdd3; color: #be123c; }
+
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 10px 14px; }
+    .overview-card { background: #fff; border: 1px solid #d8e8f5; border-radius: 12px; padding: 12px 14px; }
+
+    .scada-viewport {
+      position: relative;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      width: 100%;
+      height: 780px;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none !important;
+      user-select: none !important;
+    }
+    .scada-viewport:active { cursor: grabbing; }
+
+    svg#mainScadaSvg { display: block; max-width: none !important; }
+
+    .zoom-toolbar {
+      display: flex; align-items: center; gap: 5px; background: #f1f5f9;
+      border: 1px solid #cbd5e1; border-radius: 20px; padding: 3px 8px; flex-wrap: wrap;
+    }
+    .zoom-btn {
+      background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px;
+      padding: 3px 8px; font-size: 0.72rem; font-weight: 800; color: #0f172a; cursor: pointer;
+    }
+    .zoom-btn:hover { background: #e0f2fe; border-color: #0284c7; color: #0284c7; }
+    .zoom-level-text { font-size: 0.75rem; font-weight: 800; color: #0284c7; font-family: var(--font-tech); min-width: 42px; text-align: center; }
+
+    svg path { fill: none !important; }
+    @keyframes flowAnim {
+      from { stroke-dashoffset: 40; }
+      to { stroke-dashoffset: 0; }
+    }
+    .pipe-active { fill: none !important; stroke: #f59e0b; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+    .pipe-active-pulse { fill: none !important; stroke: #ffffff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 8, 12; animation: flowAnim 1.2s linear infinite; }
+    .pipe-inactive { fill: none !important; stroke: #cbd5e1; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ZERO-JUMP HOVER - NO TRANSLATE, NO SCALE */
+    .pid-valve-node {
+      cursor: pointer; pointer-events: all;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+      transition: filter 0.15s ease-in-out;
+    }
+    .pid-valve-node:hover { filter: brightness(1.12) drop-shadow(0 3px 8px rgba(0,0,0,0.25)); }
+  </style>
+</head>
+<body>
+
+  <header class="bgl-header">
+    <div class="brand-area">
+      <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" alt="BGL Logo">
+      <div class="brand-text">
+        <h1>BGL Gas Network Control</h1>
+        <p>Industrial SCADA Engine (FastAPI Connected)</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="overview-kpi-bar">
+    <div style="font-size:0.85rem; font-weight:800; color:#0f172a; margin-right:8px;">🌳 Network Overview:</div>
+    <div class="kpi-card kpi-drs"><div class="num">3</div><div class="lbl">DRS Stations</div></div>
+    <div class="kpi-card kpi-vc"><div class="num">26</div><div class="lbl">Valve Chambers</div></div>
+    <div class="kpi-card kpi-sr"><div class="num">12</div><div class="lbl">SR</div></div>
+    <div class="kpi-card kpi-ipng"><div class="num">14</div><div class="lbl">IPNG</div></div>
+    <div class="kpi-card kpi-cpng"><div class="num">8</div><div class="lbl">CPNG</div></div>
+  </div>
+
+  <div class="main-wrapper">
+    <div class="overview-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <h2 style="font-size:1rem; font-weight:700;">📐 P&ID Schematic Multi-DRS Ring Grid</h2>
+          <div class="zoom-toolbar">
+            <button class="zoom-btn" onclick="changeZoom(-0.1)">➖</button>
+            <span class="zoom-level-text" id="zoomLevelText">100%</span>
+            <button class="zoom-btn" onclick="changeZoom(0.1)">➕</button>
+            <button class="zoom-btn" onclick="focusStation('ALL')">🌐 Fit All</button>
+            <button class="zoom-btn" onclick="focusStation('D01')">⚡ D01</button>
+            <button class="zoom-btn" onclick="focusStation('D03')">⚡ D03</button>
+            <button class="zoom-btn" onclick="focusStation('D02')">⚡ D02</button>
+          </div>
+        </div>
+        
+        <button style="padding:5px 12px; font-size:0.75rem; font-weight:700; cursor:pointer; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;" onclick="triggerReset()">🔄 Reset All ON</button>
+      </div>
+
+      <div style="margin:10px 0; font-size:0.88rem; font-weight:700; color:#0284c7;" id="statusText">Live Python SCADA Engine Initializing...</div>
+      
+      <div class="scada-viewport" id="viewport">
+        <div style="padding:20px; text-align:center; color:#64748b;">Loading Real-Time Gas Flow from Python FastAPI...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var scadaData = null;
+    var panX = 40, panY = 20, currentZoom = 0.85;
+    var isDragging = false;
+    var startMouseX = 0, startMouseY = 0;
+
+    function changeZoom(delta) {
+      currentZoom = Math.min(Math.max(currentZoom + delta, 0.22), 2.2);
+      document.getElementById('zoomLevelText').innerText = Math.round(currentZoom * 100) + '%';
+      applyTransform();
+    }
+
+    function applyTransform() {
+      var g = document.getElementById('panZoomGroup');
+      if (g) g.setAttribute('transform', 'translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')');
+    }
+
+    function focusStation(stn) {
+      var vp = document.getElementById('viewport');
+      var vpWidth = vp ? vp.clientWidth : 1200;
+      if (stn === 'ALL') {
+        currentZoom = Math.min(Math.max(vpWidth / 5400, 0.22), 0.5);
+        panX = 20; panY = 20;
+      } else if (stn === 'D01') {
+        currentZoom = 0.85; panX = 40; panY = 20;
+      } else if (stn === 'D03') {
+        currentZoom = 0.85; panX = -(2400 * currentZoom) + (vpWidth / 2); panY = 20;
+      } else if (stn === 'D02') {
+        currentZoom = 0.85; panX = -(4200 * currentZoom) + (vpWidth / 2); panY = 20;
+      }
+      document.getElementById('zoomLevelText').innerText = Math.round(currentZoom * 100) + '%';
+      applyTransform();
+    }
+
+    // Touch & Mouse Pan Setup
+    function setupViewportControls() {
+      var vp = document.getElementById('viewport');
+      if (!vp) return;
+
+      vp.onmousedown = function(e) {
+        if (e.target.closest('.pid-valve-node') || e.target.closest('button')) return;
+        isDragging = true;
+        startMouseX = e.clientX - panX;
+        startMouseY = e.clientY - panY;
+        vp.style.cursor = 'grabbing';
+      };
+      window.onmousemove = function(e) {
+        if (!isDragging) return;
+        panX = e.clientX - startMouseX;
+        panY = e.clientY - startMouseY;
+        applyTransform();
+      };
+      window.onmouseup = function() {
+        isDragging = false;
+        if (vp) vp.style.cursor = 'grab';
+      };
+
+      // Mobile Touch
+      vp.addEventListener('touchstart', function(e) {
+        if (e.target.closest('.pid-valve-node') || e.target.closest('button')) return;
+        if (e.touches.length === 1) {
+          isDragging = true;
+          startMouseX = e.touches[0].clientX - panX;
+          startMouseY = e.touches[0].clientY - panY;
+        }
+      }, { passive: false });
+
+      vp.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 1 && isDragging) {
+          e.preventDefault();
+          panX = e.touches[0].clientX - startMouseX;
+          panY = e.touches[0].clientY - startMouseY;
+          applyTransform();
+        }
+      }, { passive: false });
+
+      vp.addEventListener('touchend', function() { isDragging = false; });
+    }
+
+    // Connect to Python FastAPI Backend Endpoints
+    async function fetchLiveSnapshot() {
+      try {
+        const res = await fetch('/api/snapshot');
+        scadaData = await res.json();
+        document.getElementById('statusText').innerText = "⚡ Real-time Python Engine Active (Live Gas BFS Loop Engine)";
+        renderPAndID();
+      } catch (err) {
+        document.getElementById('statusText').innerText = "⚠️ Backend connection error: " + err.message;
+      }
+    }
+
+    async function toggleAsset(id, currentStatus) {
+      const nextStatus = currentStatus === 'ON' ? 'OFF' : 'ON';
+      // Instant Client Update
+      if (scadaData && scadaData.assets[id]) {
+        scadaData.assets[id].status = nextStatus;
+        renderPAndID();
+      }
+      try {
+        const res = await fetch('/api/toggle', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ asset_id: id, status: nextStatus })
+        });
+        scadaData = await res.json();
+        renderPAndID();
+      } catch (e) {
+        console.error("Sync error:", e);
+      }
+    }
+
+    async function promptPressure(drsId, curP) {
+      var n = prompt("Enter new operating pressure for " + drsId + " (Bar):", curP);
+      if (n !== null && !isNaN(parseFloat(n))) {
+        var pVal = parseFloat(n);
+        const res = await fetch('/api/pressure', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ drs_id: drsId, pressure: pVal })
+        });
+        scadaData = await res.json();
+        renderPAndID();
+      }
+    }
+
+    async function triggerReset() {
+      const res = await fetch('/api/reset', { method: 'POST' });
+      scadaData = await res.json();
+      renderPAndID();
+    }
+
+    function renderPipe(d, active) {
+      var s = '<path d="' + d + '" class="' + (active ? 'pipe-active' : 'pipe-inactive') + '" pointer-events="none"/>';
+      if (active) s += '<path d="' + d + '" class="' + 'pipe-active-pulse" pointer-events="none"/>';
+      return s;
+    }
+
+    function renderDRSBox(x, y, drsId, name, press, status) {
+      var isOnline = (status === 'ON');
+      var btnColor = isOnline ? '#16a34a' : '#ef4444';
+      var btnText = isOnline ? '● ON' : '● OFF';
+      return '<g>' +
+             '<rect x="' + (x - 125) + '" y="' + (y - 5) + '" width="250" height="50" rx="14" fill="#fffbeb" stroke="' + (isOnline ? '#f59e0b' : '#ef4444') + '" stroke-width="2.8"/>' +
+             '<text x="' + (x - 110) + '" y="' + (y + 18) + '" font-family="var(--font-tech)" font-weight="800" font-size="14.5" fill="#92400e" onclick="promptPressure(\'' + drsId + '\',' + press + ')" style="cursor:pointer;">⚡ ' + drsId + ' ' + name + '</text>' +
+             '<text x="' + (x - 110) + '" y="' + (y + 35) + '" font-family="var(--font-tech)" font-weight="700" font-size="11.5" fill="#b45309" onclick="promptPressure(\'' + drsId + '\',' + press + ')" style="cursor:pointer;">[' + press + ' Bar] ✏️ Set</text>' +
+             '<g class="pid-valve-node" onclick="toggleAsset(\'' + drsId + '\', \'' + status + '\')">' +
+             '<rect x="' + (x + 48) + '" y="' + (y + 13) + '" width="64" height="26" rx="13" fill="' + btnColor + '" pointer-events="all"/>' +
+             '<text x="' + (x + 80) + '" y="' + (y + 30) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#ffffff" pointer-events="none">' + btnText + '</text>' +
+             '</g>' +
+             renderPipe('M ' + x + ' ' + (y + 45) + ' L ' + x + ' 95', isOnline) +
+             '</g>';
+    }
+
+    function renderValveCapsule(x, y, id, tag, status, hasGas, loopSource) {
+      var isManualOn = (status === 'ON');
+      var strokeColor = isManualOn ? (hasGas ? '#10b981' : '#f59e0b') : '#ef4444';
+      var btnColor = isManualOn ? '#16a34a' : '#ef4444';
+      var btnText = isManualOn ? '● ON' : '● OFF';
+      var dispId = id.replace(/^(CG|S\d+)-/, '').replace(/(D\d+)-PE(\d+)/, '$1-PE$2');
+
+      var out = '<g class="pid-valve-node" onclick="toggleAsset(\'' + id + '\', \'' + status + '\')">' +
+                '<rect x="' + (x - 105) + '" y="' + (y - 23) + '" width="210" height="46" rx="23" fill="#ffffff" stroke="' + strokeColor + '" stroke-width="2.8" pointer-events="all"/>' +
+                '<circle cx="' + (x - 85) + '" cy="' + y + '" r="9" fill="' + strokeColor + '" pointer-events="none"/>' +
+                '<text x="' + (x - 69) + '" y="' + (y - 2) + '" font-family="var(--font-tech)" font-size="13.5" font-weight="800" fill="#0f172a" pointer-events="none">' + dispId + '</text>' +
+                '<text x="' + (x - 69) + '" y="' + (y + 13) + '" font-family="var(--font-body)" font-size="10.5" font-weight="700" fill="#64748b" pointer-events="none">' + (tag || '125 MM') + '</text>' +
+                '<rect x="' + (x + 41) + '" y="' + (y - 12) + '" width="56" height="25" rx="12" fill="' + btnColor + '" pointer-events="all"/>' +
+                '<text x="' + (x + 69) + '" y="' + (y + 5) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#ffffff" pointer-events="none">' + btnText + '</text>';
+      if (loopSource) {
+        out += '<text x="' + x + '" y="' + (y + 32) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="9.5" font-weight="800" fill="#b45309">⚡ Fed by ' + loopSource.id + ' (' + loopSource.pressure + ' Bar)</text>';
+      }
+      out += '</g>';
+      return out;
+    }
+
+    function renderConsumerCard(pipeX, tapY, c, side, hasGas) {
+      var isSupplyOn = Boolean(hasGas);
+      var type = (c.type || '').toUpperCase();
+      var border = '#a855f7', bg = '#faf5ff', sym = '🏠';
+      if (type.indexOf('IPNG') !== -1) { border = '#0284c7'; bg = '#f0f9ff'; sym = '🏭'; }
+      else if (type.indexOf('CPNG') !== -1) { border = '#f97316'; bg = '#fff7ed'; sym = '🏨'; }
+
+      var cardW = 260, cardH = 54;
+      var lineEndX = (side === 'left') ? (pipeX - 55) : (pipeX + 55);
+      var cardX = (side === 'left') ? (lineEndX - cardW) : lineEndX;
+      var cardY = tapY - (cardH / 2);
+
+      var pD = 'M ' + pipeX + ' ' + tapY + ' L ' + lineEndX + ' ' + tapY;
+      var pHtml = renderPipe(pD, isSupplyOn) + '<circle cx="' + pipeX + '" cy="' + tapY + '" r="4.5" fill="#f59e0b"/>';
+      var name = c.name && c.name.length > 25 ? c.name.slice(0, 23) + '..' : (c.name || c.id);
+
+      var cardHtml = '<g>' +
+                     '<rect x="' + cardX + '" y="' + cardY + '" width="' + cardW + '" height="' + cardH + '" rx="8" fill="' + (isSupplyOn ? bg : '#f8fafc') + '" stroke="' + (isSupplyOn ? border : '#cbd5e1') + '" stroke-width="2"/>' +
+                     '<text x="' + (cardX + 10) + '" y="' + (cardY + 18) + '" font-family="var(--font-tech)" font-size="13.5" font-weight="800" fill="' + (isSupplyOn ? '#0f172a' : '#64748b') + '">' + sym + ' ' + name + '</text>' +
+                     '<text x="' + (cardX + 10) + '" y="' + (cardY + 33) + '" font-family="var(--font-tech)" font-size="11" font-weight="700" fill="#0284c7">No: ' + c.id + ' • ' + (c.tag || '40') + '</text>' +
+                     '<text x="' + (cardX + 10) + '" y="' + (cardY + 47) + '" font-family="var(--font-body)" font-size="11" font-weight="800" fill="' + (isSupplyOn ? '#16a34a' : '#ef4444') + '">● ' + (isSupplyOn ? 'GAS ON' : 'GAS OFF') + '</text>' +
+                     '</g>';
+      return pHtml + cardHtml;
+    }
+
+    function renderLineBadge(x, label, isLive) {
+      var topP = renderPipe('M ' + x + ' 95 L ' + x + ' 118', isLive);
+      var botP = renderPipe('M ' + x + ' 142 L ' + x + ' 175', isLive);
+      var badge = '<g><rect x="' + (x - 65) + '" y="118" width="130" height="24" rx="12" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.8"/><text x="' + x + '" y="' + 134 + '" text-anchor="middle" font-family="var(--font-tech)" font-size="12" font-weight="800" fill="#0284c7">' + label + '</text></g>';
+      return topP + botP + badge;
+    }
+
+    // MAIN DIAGRAM RENDERING WITH FULL PYTHON STATE
+    function renderPAndID() {
+      if (!scadaData) return;
+      var A = scadaData.assets;
+      var S = scadaData.supply;
+      var F = scadaData.fed_by;
+
+      var svgW = 8800, svgH = 1200;
+      var svg = '<svg id="mainScadaSvg" viewBox="0 0 ' + svgW + ' ' + svgH + '" width="' + svgW + 'px" height="' + svgH + 'px" style="background:#ffffff; border-radius:8px;">' +
+                '<g id="panZoomGroup" transform="translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')">';
+
+      // DRS Stations & Main Header Bus Pipes
+      var d01On = S['D01'], d03On = S['D03'], d02On = S['D02'];
+      svg += renderDRSBox(1650, 25, 'D01', A['D01'].name, A['D01'].pressure, A['D01'].status);
+      svg += renderPipe('M 250 95 L 3050 95', d01On);
+
+      svg += renderDRSBox(4600, 25, 'D03', A['D03'].name, A['D03'].pressure, A['D03'].status);
+      svg += renderPipe('M 3900 95 L 5300 95', d03On);
+
+      svg += renderDRSBox(7200, 25, 'D02', A['D02'].name, A['D02'].pressure, A['D02'].status);
+      svg += renderPipe('M 6150 95 L 8250 95', d02On);
+
+      // --- D01 SUB-NETWORK ---
+      // Direct Spurs Column (X=250)
+      svg += renderLineBadge(250, '⚡ Direct Spurs', d01On);
+      svg += renderPipe('M 250 175 L 250 355', d01On);
+      svg += renderConsumerCard(250, 175, A['D01-DIR-01'], 'left', d01On);
+      svg += renderConsumerCard(250, 235, A['D01-DIR-02'], 'left', d01On);
+      svg += renderConsumerCard(250, 295, A['D01-DIR-03'], 'left', d01On);
+      svg += renderConsumerCard(250, 355, A['D01-DIR-04'], 'left', d01On);
+
+      // D01 Line 1 (X=950)
+      svg += renderLineBadge(950, '⚡ LINE 1', d01On);
+      svg += renderValveCapsule(950, 175, 'CG-D01-PE01', A['CG-D01-PE01'].tag, A['CG-D01-PE01'].status, S['CG-D01-PE01'], F['CG-D01-PE01']);
+      svg += renderConsumerCard(950, 245, A['31000003'], 'right', S['31000003']);
+
+      // D01 Line 2 (X=1650)
+      svg += renderLineBadge(1650, '⚡ LINE 2', d01On);
+      svg += renderValveCapsule(1650, 175, 'CG-D01-PE02', A['CG-D01-PE02'].tag, A['CG-D01-PE02'].status, S['CG-D01-PE02'], F['CG-D01-PE02']);
+      svg += renderConsumerCard(1650, 230, A['CG-D01-SR03'], 'right', S['CG-D01-SR03']);
+      svg += renderPipe('M 1650 198 L 1650 295', S['CG-D01-PE02'] && A['CG-D01-PE02'].status === 'ON');
+      svg += renderValveCapsule(1650, 295, 'CG-D01-PE02/01', A['CG-D01-PE02/01'].tag, A['CG-D01-PE02/01'].status, S['CG-D01-PE02/01'], F['CG-D01-PE02/01']);
+      svg += renderPipe('M 1650 318 L 1650 415', S['CG-D01-PE02/01'] && A['CG-D01-PE02/01'].status === 'ON');
+      svg += renderValveCapsule(1650, 415, 'CG-D01-PE02/02', A['CG-D01-PE02/02'].tag, A['CG-D01-PE02/02'].status, S['CG-D01-PE02/02'], F['CG-D01-PE02/02']);
+      svg += renderConsumerCard(1650, 470, A['CG-D01-SR01'], 'right', S['CG-D01-SR01']);
+      svg += renderPipe('M 1650 438 L 1650 555', S['CG-D01-PE02/02'] && A['CG-D01-PE02/02'].status === 'ON');
+      svg += renderValveCapsule(1650, 555, 'CG-D01-PE02/03', A['CG-D01-PE02/03'].tag, A['CG-D01-PE02/03'].status, S['CG-D01-PE02/03'], F['CG-D01-PE02/03']);
+      svg += renderConsumerCard(1650, 610, A['CG-D01-SR07'], 'right', S['CG-D01-SR07']);
+
+      // D01 Line 3 (X=2350)
+      svg += renderLineBadge(2350, '⚡ LINE 3', d01On);
+      svg += renderValveCapsule(2350, 175, 'CG-D01-PE03', A['CG-D01-PE03'].tag, A['CG-D01-PE03'].status, S['CG-D01-PE03'], F['CG-D01-PE03']);
+      svg += renderPipe('M 2350 198 L 2350 275', S['CG-D01-PE03'] && A['CG-D01-PE03'].status === 'ON');
+      svg += renderValveCapsule(2350, 275, 'CG-D01-PE04', A['CG-D01-PE04'].tag, A['CG-D01-PE04'].status, S['CG-D01-PE04'], F['CG-D01-PE04']);
+      svg += renderPipe('M 2350 298 L 2350 385', S['CG-D01-PE04'] && A['CG-D01-PE04'].status === 'ON');
+      svg += renderValveCapsule(2350, 385, 'CG-D01-PE04/01', A['CG-D01-PE04/01'].tag, A['CG-D01-PE04/01'].status, S['CG-D01-PE04/01'], F['CG-D01-PE04/01']);
+      svg += renderPipe('M 2350 408 L 2350 495', S['CG-D01-PE04/01'] && A['CG-D01-PE04/01'].status === 'ON');
+      svg += renderValveCapsule(2350, 495, 'CG-D01-PE04/02', A['CG-D01-PE04/02'].tag, A['CG-D01-PE04/02'].status, S['CG-D01-PE04/02'], F['CG-D01-PE04/02']);
+      svg += renderPipe('M 2350 518 L 2350 605', S['CG-D01-PE04/02'] && A['CG-D01-PE04/02'].status === 'ON');
+      svg += renderValveCapsule(2350, 605, 'CG-D01-PE04/03', A['CG-D01-PE04/03'].tag, A['CG-D01-PE04/03'].status, S['CG-D01-PE04/03'], F['CG-D01-PE04/03']);
+      svg += renderConsumerCard(2350, 660, A['21300007'], 'right', S['21300007']);
+
+      // T-Connect inside D01
+      svg += renderPipe('M 2455 385 L 3050 385', S['CG-D01-PE04/01'] && S['CG-D01-PE05']);
+      svg += '<text x="2700" y="373" text-anchor="middle" font-family="var(--font-tech)" font-size="11.5" font-weight="800" fill="#b45309">⚡ 125 MM T-CONNECT</text>';
+
+      // D01 Line 4 (X=3050)
+      svg += renderPipe('M 3050 385 L 3050 435', S['CG-D01-PE05']);
+      svg += renderLineBadge(3050, '⚡ LINE 4', d01On);
+      svg += renderValveCapsule(3050, 435, 'CG-D01-PE05', A['CG-D01-PE05'].tag, A['CG-D01-PE05'].status, S['CG-D01-PE05'], F['CG-D01-PE05']);
+      svg += renderPipe('M 3050 458 L 3050 545', S['CG-D01-PE05'] && A['CG-D01-PE05'].status === 'ON');
+      svg += renderValveCapsule(3050, 545, 'CG-D01-PE05/01', A['CG-D01-PE05/01'].tag, A['CG-D01-PE05/01'].status, S['CG-D01-PE05/01'], F['CG-D01-PE05/01']);
+      svg += renderConsumerCard(3050, 600, A['21300016'], 'left', S['21300016']);
+      svg += renderPipe('M 3050 568 L 3050 655', S['CG-D01-PE05/01'] && A['CG-D01-PE05/01'].status === 'ON');
+      svg += renderValveCapsule(3050, 655, 'CG-D01-PE06', A['CG-D01-PE06'].tag, A['CG-D01-PE06'].status, S['CG-D01-PE06'], F['CG-D01-PE06']);
+      svg += renderPipe('M 3050 678 L 3050 755', S['CG-D01-PE06'] && A['CG-D01-PE06'].status === 'ON');
+      svg += renderValveCapsule(3050, 755, 'CG-D01-PE07', A['CG-D01-PE07'].tag, A['CG-D01-PE07'].status, S['CG-D01-PE07'], F['CG-D01-PE07']);
+      svg += renderPipe('M 3050 778 L 3050 845', S['CG-D01-PE07'] && A['CG-D01-PE07'].status === 'ON');
+      svg += renderValveCapsule(3050, 845, 'CG-D01-PE07/01', A['CG-D01-PE07/01'].tag, A['CG-D01-PE07/01'].status, S['CG-D01-PE07/01'], F['CG-D01-PE07/01']);
+
+      // --- D03 SUB-NETWORK (X: 3900, 4600, 5300) ---
+      // D03 Line 1 (X=3900)
+      svg += renderLineBadge(3900, '⚡ LINE 1', d03On);
+      svg += renderValveCapsule(3900, 175, 'S03-D03-PE01', A['S03-D03-PE01'].tag, A['S03-D03-PE01'].status, S['S03-D03-PE01'], F['S03-D03-PE01']);
+      svg += renderConsumerCard(3900, 235, A['21300095'], 'left', S['21300095']);
+      svg += renderConsumerCard(3900, 235, A['21300071'], 'right', S['21300071']);
+      svg += renderPipe('M 3900 198 L 3900 335', S['S03-D03-PE01'] && A['S03-D03-PE01'].status === 'ON');
+      svg += renderValveCapsule(3900, 335, 'S03-D03-PE06', A['S03-D03-PE06'].tag, A['S03-D03-PE06'].status, S['S03-D03-PE06'], F['S03-D03-PE06']);
+      svg += renderConsumerCard(3900, 395, A['21300055'], 'left', S['21300055']);
+      svg += renderConsumerCard(3900, 395, A['21300038'], 'right', S['21300038']);
+      svg += renderPipe('M 3900 358 L 3900 495', S['S03-D03-PE06'] && A['S03-D03-PE06'].status === 'ON');
+      svg += renderValveCapsule(3900, 495, 'S03-D03-PE07', A['S03-D03-PE07'].tag, A['S03-D03-PE07'].status, S['S03-D03-PE07'], F['S03-D03-PE07']);
+      svg += renderConsumerCard(3900, 555, A['21300052'], 'left', S['21300052']);
+
+      // D03 Line 2 (X=4600)
+      svg += renderLineBadge(4600, '⚡ LINE 2', d03On);
+      svg += renderValveCapsule(4600, 175, 'S03-D03-PE02', A['S03-D03-PE02'].tag, A['S03-D03-PE02'].status, S['S03-D03-PE02'], F['S03-D03-PE02']);
+      svg += renderConsumerCard(4600, 235, A['21100002'], 'left', S['21100002']);
+      svg += renderConsumerCard(4600, 235, A['21100007'], 'right', S['21100007']);
+
+      // D03 Line 3 (X=5300)
+      svg += renderLineBadge(5300, '⚡ LINE 3', d03On);
+      svg += renderValveCapsule(5300, 175, 'S03-D03-PE03', A['S03-D03-PE03'].tag, A['S03-D03-PE03'].status, S['S03-D03-PE03'], F['S03-D03-PE03']);
+      svg += renderConsumerCard(5300, 235, A['21300005'], 'left', S['21300005']);
+      svg += renderPipe('M 5300 198 L 5300 335', S['S03-D03-PE03'] && A['S03-D03-PE03'].status === 'ON');
+      svg += renderValveCapsule(5300, 335, 'S03-D03-PE03/1', A['S03-D03-PE03/1'].tag, A['S03-D03-PE03/1'].status, S['S03-D03-PE03/1'], F['S03-D03-PE03/1']);
+      svg += renderConsumerCard(5300, 395, A['21100001'], 'left', S['21100001']);
+      svg += renderConsumerCard(5300, 395, A['21100008'], 'right', S['21100008']);
+      svg += renderPipe('M 5300 358 L 5300 495', S['S03-D03-PE03/1'] && A['S03-D03-PE03/1'].status === 'ON');
+      svg += renderValveCapsule(5300, 495, 'S03-D03-PE04', A['S03-D03-PE04'].tag, A['S03-D03-PE04'].status, S['S03-D03-PE04'], F['S03-D03-PE04']);
+
+      // --- D02 SUB-NETWORK (X: 6150, 6850, 7550, 8250) ---
+      // D02 Line 1 (X=6150)
+      svg += renderLineBadge(6150, '⚡ LINE 1', d02On);
+      svg += renderValveCapsule(6150, 175, 'S02-D02-PE01', A['S02-D02-PE01'].tag, A['S02-D02-PE01'].status, S['S02-D02-PE01'], F['S02-D02-PE01']);
+      svg += renderConsumerCard(6150, 235, A['D02-SR10'], 'left', S['D02-SR10']);
+      svg += renderConsumerCard(6150, 235, A['31000015'], 'right', S['31000015']);
+      svg += renderPipe('M 6150 198 L 6150 355', S['S02-D02-PE01'] && A['S02-D02-PE01'].status === 'ON');
+      svg += renderValveCapsule(6150, 355, 'S02-D02-PE04', A['S02-D02-PE04'].tag, A['S02-D02-PE04'].status, S['S02-D02-PE04'], F['S02-D02-PE04']);
+      svg += renderConsumerCard(6150, 415, A['31000002'], 'left', S['31000002']);
+      svg += renderConsumerCard(6150, 415, A['31000008'], 'right', S['31000008']);
+
+      // D02 Line 2 (X=6850)
+      svg += renderLineBadge(6850, '⚡ LINE 2', d02On);
+      svg += renderValveCapsule(6850, 175, 'S02-D02-PE02', A['S02-D02-PE02'].tag, A['S02-D02-PE02'].status, S['S02-D02-PE02'], F['S02-D02-PE02']);
+      svg += renderConsumerCard(6850, 235, A['31000024'], 'left', S['31000024']);
+
+      // D02 Line 3 (X=7550)
+      svg += renderLineBadge(7550, '⚡ LINE 3', d02On);
+      svg += renderValveCapsule(7550, 175, 'S02-D02-PE06', A['S02-D02-PE06'].tag, A['S02-D02-PE06'].status, S['S02-D02-PE06'], F['S02-D02-PE06']);
+      svg += renderConsumerCard(7550, 235, A['31000045'], 'left', S['31000045']);
+
+      // D02 Line 4 (X=8250)
+      svg += renderLineBadge(8250, '⚡ LINE 4', d02On);
+      svg += renderValveCapsule(8250, 175, 'S02-D02-PE08', A['S02-D02-PE08'].tag, A['S02-D02-PE08'].status, S['S02-D02-PE08'], F['S02-D02-PE08']);
+      svg += renderPipe('M 8250 198 L 8250 295', S['S02-D02-PE08'] && A['S02-D02-PE08'].status === 'ON');
+      svg += renderValveCapsule(8250, 295, 'S02-D02-PE07', A['S02-D02-PE07'].tag, A['S02-D02-PE07'].status, S['S02-D02-PE07'], F['S02-D02-PE07']);
+      svg += renderPipe('M 8250 318 L 8250 415', S['S02-D02-PE07'] && A['S02-D02-PE07'].status === 'ON');
+      svg += renderValveCapsule(8250, 415, 'S02-D02-PE07/02', A['S02-D02-PE07/02'].tag, A['S02-D02-PE07/02'].status, S['S02-D02-PE07/02'], F['S02-D02-PE07/02']);
+
+      // ==========================================
+      // LIVE INTER-DRS RING LOOP PIPELINES (BFS CONNECTED)
+      // ==========================================
+      var tie1Live = S['CG-D01-PE05'] && A['CG-D01-PE05'].status === 'ON' && S['S03-D03-PE04'];
+      var tie2Live = S['S03-D03-PE04'] && A['S03-D03-PE04'].status === 'ON' && S['S02-D02-PE08'];
+
+      // Route Loop 1: D01-PE05 (X=3050, Y=435) -> D03-PE04 (X=5300, Y=495)
+      var d01ToD03Path = 'M 3155 435 L 3400 435 L 3400 960 L 5550 960 L 5550 495 L 5405 495';
+      svg += renderPipe(d01ToD03Path, tie1Live);
+      svg += '<text x="4450" y="948" text-anchor="middle" font-family="var(--font-tech)" font-size="14.5" font-weight="800" fill="#b45309">⚡ RING CONDUIT: D01-PE05 ⟷ D03-PE04</text>';
+
+      // Route Loop 2: D03-PE04 (X=5300, Y=495) -> D02-PE08 (X=8250, Y=175)
+      var d03ToD02Path = 'M 5550 960 L 5550 1040 L 8500 1040 L 8500 175 L 8355 175';
+      svg += renderPipe(d03ToD02Path, tie2Live);
+      svg += '<text x="7000" y="1028" text-anchor="middle" font-family="var(--font-tech)" font-size="14.5" font-weight="800" fill="#b45309">⚡ RING CONDUIT: D03-PE04 ⟷ D02-PE08</text>';
+
+      svg += '</g></svg>';
+      document.getElementById('viewport').innerHTML = svg;
+    }
+
+    // Startup
+    window.onload = function() {
+      setupViewportControls();
+      fetchLiveSnapshot();
+    };
+  </script>
+</body>
+</html>
