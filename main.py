@@ -6,7 +6,6 @@ import networkx as nx
 
 app = FastAPI(title="BGL Gas SCADA Engine")
 
-# Base Directory & HTML Path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_HTML = os.path.join(BASE_DIR, "templates", "index.html")
 
@@ -131,7 +130,6 @@ PIPELINES = [
     ("S03-D03-PE04", "S02-D02-PE08")
 ]
 
-# Build Graph
 G = nx.Graph()
 for u, v in PIPELINES:
     G.add_edge(u, v)
@@ -145,6 +143,11 @@ class PressureReq(BaseModel):
     pressure: float
 
 def run_scada_bfs_flow():
+    """
+    PHYSICS BFS ENGINE:
+    - Only closed VALVES block flow.
+    - An inactive DRS does NOT block header backfeed from loops!
+    """
     active_drs = [
         k for k, v in ASSETS.items() 
         if v.get("type") == "DRS" and v.get("status") == "ON"
@@ -163,7 +166,9 @@ def run_scada_bfs_flow():
 
         while q:
             curr = q.pop(0)
-            if curr != drs and ASSETS.get(curr, {}).get("status") == "OFF":
+
+            # ONLY CLOSED VALVES BLOCK FLOW!
+            if ASSETS.get(curr, {}).get("type") == "VALVE" and ASSETS.get(curr, {}).get("status") == "OFF":
                 continue
 
             for nbr in G.neighbors(curr):
@@ -174,18 +179,8 @@ def run_scada_bfs_flow():
                         fed_by[nbr] = fed_by[curr]
                     q.append(nbr)
 
-    # Backfeed to DRS headers
-    for drs_id in ["D01", "D03", "D02"]:
-        if not gas_supply.get(drs_id, False):
-            for nbr in G.neighbors(drs_id):
-                if gas_supply.get(nbr, False) and ASSETS.get(nbr, {}).get("status") == "ON":
-                    gas_supply[drs_id] = True
-                    fed_by[drs_id] = fed_by.get(nbr, {"id": "LOOP", "pressure": 3.6})
-                    break
-
     return gas_supply, fed_by
 
-# Direct FileResponse serving index.html without template errors
 @app.get("/")
 def index():
     if os.path.exists(INDEX_HTML):
