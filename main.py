@@ -1,11 +1,14 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+import os
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import networkx as nx
 
 app = FastAPI(title="BGL Gas SCADA Engine")
-templates = Jinja2Templates(directory="templates")
+
+# Base Directory & HTML Path
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INDEX_HTML = os.path.join(BASE_DIR, "templates", "index.html")
 
 # In-Memory Network Assets Registry
 ASSETS = {
@@ -82,7 +85,7 @@ ASSETS = {
     "31000045": {"id": "31000045", "type": "CPNG", "name": "Seasons Bar & Rest.", "tag": "125 MM", "status": "ON"}
 }
 
-# Network Topology Edges
+# Network Topology Pipelines
 PIPELINES = [
     # D01 Direct Spurs
     ("D01", "D01-DIR-01"), ("D01", "D01-DIR-02"), ("D01", "D01-DIR-03"), ("D01", "D01-DIR-04"),
@@ -123,14 +126,12 @@ PIPELINES = [
     ("S02-D02-PE08", "S02-D02-PE07"),
     ("S02-D02-PE07", "S02-D02-PE07/02"),
 
-    # ==========================================
-    # INTER-DRS RING LOOP PIPELINES
-    # ==========================================
+    # Inter-DRS Ring Loops
     ("CG-D01-PE05", "S03-D03-PE04"),
     ("S03-D03-PE04", "S02-D02-PE08")
 ]
 
-# Build the Graph
+# Build Graph
 G = nx.Graph()
 for u, v in PIPELINES:
     G.add_edge(u, v)
@@ -144,12 +145,10 @@ class PressureReq(BaseModel):
     pressure: float
 
 def run_scada_bfs_flow():
-    """Industrial Multi-Source BFS Gas Simulation with Backfeed & Pressure Dominance"""
     active_drs = [
         k for k, v in ASSETS.items() 
         if v.get("type") == "DRS" and v.get("status") == "ON"
     ]
-    # Priority by operating pressure
     active_drs.sort(key=lambda x: ASSETS[x].get("pressure", 0.0), reverse=True)
 
     gas_supply = {node: False for node in G.nodes()}
@@ -164,7 +163,6 @@ def run_scada_bfs_flow():
 
         while q:
             curr = q.pop(0)
-            # A closed valve or closed DRS stops flow downstream
             if curr != drs and ASSETS.get(curr, {}).get("status") == "OFF":
                 continue
 
@@ -176,10 +174,9 @@ def run_scada_bfs_flow():
                         fed_by[nbr] = fed_by[curr]
                     q.append(nbr)
 
-    # Check DRS Headers for Backfeed (Energizes Direct Spurs even if DRS itself is OFF!)
+    # Backfeed to DRS headers
     for drs_id in ["D01", "D03", "D02"]:
         if not gas_supply.get(drs_id, False):
-            # Check if any connected node is backfeeding gas into this DRS
             for nbr in G.neighbors(drs_id):
                 if gas_supply.get(nbr, False) and ASSETS.get(nbr, {}).get("status") == "ON":
                     gas_supply[drs_id] = True
@@ -188,9 +185,12 @@ def run_scada_bfs_flow():
 
     return gas_supply, fed_by
 
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+# Direct FileResponse serving index.html without template errors
+@app.get("/")
+def index():
+    if os.path.exists(INDEX_HTML):
+        return FileResponse(INDEX_HTML, media_type="text/html")
+    return {"error": "index.html not found"}
 
 @app.get("/api/snapshot")
 def get_snapshot():
