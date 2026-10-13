@@ -12,9 +12,9 @@ INDEX_HTML = os.path.join(BASE_DIR, "templates", "index.html")
 # In-Memory Network Assets Registry
 ASSETS = {
     # DRS Stations
-    "D01": {"id": "D01", "type": "DRS", "name": "MS DRS", "pressure": 4.1, "status": "ON", "lat": "", "lng": ""},
-    "D03": {"id": "D03", "type": "DRS", "name": "Check Post DRS", "pressure": 3.6, "status": "ON", "lat": "", "lng": ""},
-    "D02": {"id": "D02", "type": "DRS", "name": "Depo DRS", "pressure": 3.1, "status": "ON", "lat": "", "lng": ""},
+    "D01": {"id": "D01", "type": "DRS", "name": "MS DRS", "pressure": 4.1, "status": "ON"},
+    "D03": {"id": "D03", "type": "DRS", "name": "Check Post DRS", "pressure": 3.6, "status": "ON"},
+    "D02": {"id": "D02", "type": "DRS", "name": "Depo DRS", "pressure": 3.1, "status": "ON"},
     
     # D01 Direct Spurs
     "D01-DIR-01": {"id": "D01-DIR-01", "type": "CPNG", "name": "Registrar, Nalsar Univ.", "tag": "125 MM", "status": "ON"},
@@ -22,7 +22,7 @@ ASSETS = {
     "D01-DIR-03": {"id": "D01-DIR-03", "type": "SR", "name": "Shamirpet Spur 02", "tag": "25", "status": "ON"},
     "D01-DIR-04": {"id": "D01-DIR-04", "type": "SR", "name": "Shamirpet Spur 03", "tag": "25", "status": "ON"},
 
-    # D01 Line 1..4 Valves
+    # D01 Line Valves
     "CG-D01-PE01": {"id": "CG-D01-PE01", "type": "VALVE", "tag": "125 MM", "status": "ON"},
     "CG-D01-PE02": {"id": "CG-D01-PE02", "type": "VALVE", "tag": "125 MM", "status": "ON"},
     "CG-D01-PE02/01": {"id": "CG-D01-PE02/01", "type": "VALVE", "tag": "90 MM", "status": "ON"},
@@ -98,7 +98,7 @@ PIPELINES = [
     ("CG-D01-PE03", "CG-D01-PE04"), ("CG-D01-PE04", "CG-D01-PE04/01"),
     ("CG-D01-PE04/01", "CG-D01-PE04/02"), ("CG-D01-PE04/02", "CG-D01-PE04/03"),
     ("CG-D01-PE04/03", "21300007"),
-    ("CG-D01-PE04/01", "CG-D01-PE05"), # T-Connect
+    ("CG-D01-PE04/01", "CG-D01-PE05"),
     ("CG-D01-PE05", "CG-D01-PE05/01"), ("CG-D01-PE05/01", "21300016"),
     ("CG-D01-PE05/01", "CG-D01-PE06"), ("CG-D01-PE06", "CG-D01-PE07"),
     ("CG-D01-PE07", "CG-D01-PE07/01"),
@@ -134,6 +134,7 @@ G = nx.Graph()
 for u, v in PIPELINES:
     G.add_edge(u, v)
 
+# Request Models
 class ToggleReq(BaseModel):
     asset_id: str
     status: str
@@ -142,12 +143,18 @@ class PressureReq(BaseModel):
     drs_id: str
     pressure: float
 
+class AssetCreateReq(BaseModel):
+    id: str
+    name: str
+    type: str
+    tag: str = "125 MM"
+    pressure: float = 0.0
+
+class PipelineCreateReq(BaseModel):
+    source_id: str
+    target_id: str
+
 def run_scada_bfs_flow():
-    """
-    PHYSICS BFS ENGINE:
-    - Only closed VALVES block flow.
-    - An inactive DRS does NOT block header backfeed from loops!
-    """
     active_drs = [
         k for k, v in ASSETS.items() 
         if v.get("type") == "DRS" and v.get("status") == "ON"
@@ -167,7 +174,7 @@ def run_scada_bfs_flow():
         while q:
             curr = q.pop(0)
 
-            # ONLY CLOSED VALVES BLOCK FLOW!
+            # ONLY CLOSED VALVES BLOCK FLOW
             if ASSETS.get(curr, {}).get("type") == "VALVE" and ASSETS.get(curr, {}).get("status") == "OFF":
                 continue
 
@@ -192,6 +199,7 @@ def get_snapshot():
     supply, fed_by = run_scada_bfs_flow()
     return {
         "assets": ASSETS,
+        "pipelines": PIPELINES,
         "supply": supply,
         "fed_by": fed_by
     }
@@ -204,6 +212,7 @@ def toggle_asset(req: ToggleReq):
     return {
         "success": True,
         "assets": ASSETS,
+        "pipelines": PIPELINES,
         "supply": supply,
         "fed_by": fed_by
     }
@@ -216,6 +225,71 @@ def update_pressure(req: PressureReq):
     return {
         "success": True,
         "assets": ASSETS,
+        "pipelines": PIPELINES,
+        "supply": supply,
+        "fed_by": fed_by
+    }
+
+# STEP 1: ADD ASSET ENDPOINT
+@app.post("/api/asset/add")
+def add_new_asset(req: AssetCreateReq):
+    asset_id = req.id.strip()
+    if not asset_id:
+        return {"success": False, "message": "Asset ID ivvali!"}
+    
+    if asset_id in ASSETS:
+        return {"success": False, "message": f"Asset '{asset_id}' already undi!"}
+
+    ASSETS[asset_id] = {
+        "id": asset_id,
+        "name": req.name.strip() or asset_id,
+        "type": req.type.upper(),
+        "tag": req.tag.strip() or "125 MM",
+        "pressure": req.pressure if req.type.upper() == "DRS" else 0.0,
+        "status": "ON"
+    }
+    
+    if not G.has_node(asset_id):
+        G.add_node(asset_id)
+
+    supply, fed_by = run_scada_bfs_flow()
+    return {
+        "success": True,
+        "message": f"Asset '{asset_id}' successfully create aindi!",
+        "assets": ASSETS,
+        "pipelines": PIPELINES,
+        "supply": supply,
+        "fed_by": fed_by
+    }
+
+# STEP 2: LINK ASSETS ENDPOINT
+@app.post("/api/pipeline/add")
+def add_pipeline_link(req: PipelineCreateReq):
+    src = req.source_id.strip()
+    tgt = req.target_id.strip()
+
+    if not src or not tgt:
+        return {"success": False, "message": "Source mariyu Target rendu select cheyali!"}
+
+    if src == tgt:
+        return {"success": False, "message": "Same asset ki connect cheyalemu!"}
+
+    if src not in ASSETS or tgt not in ASSETS:
+        return {"success": False, "message": "Edo oka asset system lo ledu!"}
+
+    # Check already existing edge
+    if (src, tgt) in PIPELINES or (tgt, src) in PIPELINES:
+        return {"success": False, "message": "Ee rendu assets madhya link already undi!"}
+
+    PIPELINES.append((src, tgt))
+    G.add_edge(src, tgt)
+
+    supply, fed_by = run_scada_bfs_flow()
+    return {
+        "success": True,
+        "message": f"Link '{src}' ⟷ '{tgt}' successfully connect aindi!",
+        "assets": ASSETS,
+        "pipelines": PIPELINES,
         "supply": supply,
         "fed_by": fed_by
     }
@@ -228,6 +302,7 @@ def reset_all():
     return {
         "success": True,
         "assets": ASSETS,
+        "pipelines": PIPELINES,
         "supply": supply,
         "fed_by": fed_by
     }
