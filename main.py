@@ -1,138 +1,178 @@
 import os
+import sqlite3
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import networkx as nx
 
-app = FastAPI(title="BGL Gas SCADA Engine")
+app = FastAPI(title="BGL Gas SCADA Database Engine")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_HTML = os.path.join(BASE_DIR, "templates", "index.html")
+DB_PATH = os.path.join(BASE_DIR, "scada.db")
 
-# In-Memory Network Assets Registry
-ASSETS = {
-    # DRS Stations
-    "D01": {"id": "D01", "type": "DRS", "name": "MS DRS", "pressure": 4.1, "status": "ON"},
-    "D03": {"id": "D03", "type": "DRS", "name": "Check Post DRS", "pressure": 3.6, "status": "ON"},
-    "D02": {"id": "D02", "type": "DRS", "name": "Depo DRS", "pressure": 3.1, "status": "ON"},
+# ==========================================
+# 1. DATABASE INITIALIZATION & SCHEMA
+# ==========================================
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
     
-    # D01 Direct Spurs
-    "D01-DIR-01": {"id": "D01-DIR-01", "type": "CPNG", "name": "Registrar, Nalsar Univ.", "tag": "125 MM", "status": "ON"},
-    "D01-DIR-02": {"id": "D01-DIR-02", "type": "SR", "name": "Shamirpet Spur 01", "tag": "25", "status": "ON"},
-    "D01-DIR-03": {"id": "D01-DIR-03", "type": "SR", "name": "Shamirpet Spur 02", "tag": "25", "status": "ON"},
-    "D01-DIR-04": {"id": "D01-DIR-04", "type": "SR", "name": "Shamirpet Spur 03", "tag": "25", "status": "ON"},
+    # Assets Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS assets (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            type TEXT,
+            tag TEXT,
+            pressure REAL DEFAULT 0.0,
+            status TEXT DEFAULT 'ON'
+        )
+    """)
+    
+    # Pipelines Table (Links between assets)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pipelines (
+            source_id TEXT,
+            target_id TEXT,
+            PRIMARY KEY (source_id, target_id)
+        )
+    """)
+    conn.commit()
 
-    # D01 Line Valves
-    "CG-D01-PE01": {"id": "CG-D01-PE01", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "CG-D01-PE02": {"id": "CG-D01-PE02", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "CG-D01-PE02/01": {"id": "CG-D01-PE02/01", "type": "VALVE", "tag": "90 MM", "status": "ON"},
-    "CG-D01-PE02/02": {"id": "CG-D01-PE02/02", "type": "VALVE", "tag": "90 MM", "status": "ON"},
-    "CG-D01-PE02/03": {"id": "CG-D01-PE02/03", "type": "VALVE", "tag": "63 MM", "status": "ON"},
-    "CG-D01-PE03": {"id": "CG-D01-PE03", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "CG-D01-PE04": {"id": "CG-D01-PE04", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "CG-D01-PE04/01": {"id": "CG-D01-PE04/01", "type": "VALVE", "tag": "90 MM", "status": "ON"},
-    "CG-D01-PE04/02": {"id": "CG-D01-PE04/02", "type": "VALVE", "tag": "90 MM", "status": "ON"},
-    "CG-D01-PE04/03": {"id": "CG-D01-PE04/03", "type": "VALVE", "tag": "90 MM", "status": "ON"},
-    "CG-D01-PE05": {"id": "CG-D01-PE05", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "CG-D01-PE05/01": {"id": "CG-D01-PE05/01", "type": "VALVE", "tag": "90 MM", "status": "ON"},
-    "CG-D01-PE06": {"id": "CG-D01-PE06", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "CG-D01-PE07": {"id": "CG-D01-PE07", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "CG-D01-PE07/01": {"id": "CG-D01-PE07/01", "type": "VALVE", "tag": "125 MM", "status": "ON"},
+    # Seed Default BGL Network if DB is empty
+    cursor.execute("SELECT COUNT(*) FROM assets")
+    if cursor.fetchone()[0] == 0:
+        default_assets = [
+            ("D01", "MS DRS", "DRS", "125 MM", 4.1, "ON"),
+            ("D03", "Check Post DRS", "DRS", "125 MM", 3.6, "ON"),
+            ("D02", "Depo DRS", "DRS", "125 MM", 3.1, "ON"),
+            ("D01-DIR-01", "Registrar, Nalsar Univ.", "CPNG", "125 MM", 0.0, "ON"),
+            ("D01-DIR-02", "Shamirpet Spur 01", "SR", "25", 0.0, "ON"),
+            ("D01-DIR-03", "Shamirpet Spur 02", "SR", "25", 0.0, "ON"),
+            ("D01-DIR-04", "Shamirpet Spur 03", "SR", "25", 0.0, "ON"),
+            ("CG-D01-PE01", "CG-D01-PE01", "VALVE", "125 MM", 0.0, "ON"),
+            ("CG-D01-PE02", "CG-D01-PE02", "VALVE", "125 MM", 0.0, "ON"),
+            ("CG-D01-PE02/01", "CG-D01-PE02/01", "VALVE", "90 MM", 0.0, "ON"),
+            ("CG-D01-PE02/02", "CG-D01-PE02/02", "VALVE", "90 MM", 0.0, "ON"),
+            ("CG-D01-PE02/03", "CG-D01-PE02/03", "VALVE", "63 MM", 0.0, "ON"),
+            ("CG-D01-PE03", "CG-D01-PE03", "VALVE", "125 MM", 0.0, "ON"),
+            ("CG-D01-PE04", "CG-D01-PE04", "VALVE", "125 MM", 0.0, "ON"),
+            ("CG-D01-PE04/01", "CG-D01-PE04/01", "VALVE", "90 MM", 0.0, "ON"),
+            ("CG-D01-PE04/02", "CG-D01-PE04/02", "VALVE", "90 MM", 0.0, "ON"),
+            ("CG-D01-PE04/03", "CG-D01-PE04/03", "VALVE", "90 MM", 0.0, "ON"),
+            ("CG-D01-PE05", "CG-D01-PE05", "VALVE", "125 MM", 0.0, "ON"),
+            ("CG-D01-PE05/01", "CG-D01-PE05/01", "VALVE", "90 MM", 0.0, "ON"),
+            ("CG-D01-PE06", "CG-D01-PE06", "VALVE", "125 MM", 0.0, "ON"),
+            ("CG-D01-PE07", "CG-D01-PE07", "VALVE", "125 MM", 0.0, "ON"),
+            ("CG-D01-PE07/01", "CG-D01-PE07/01", "VALVE", "125 MM", 0.0, "ON"),
+            ("31000003", "IPE Univ. Canteen", "CPNG", "125 MM", 0.0, "ON"),
+            ("CG-D01-SR03", "Shamirpet SR03/04", "SR", "40", 0.0, "ON"),
+            ("CG-D01-SR01", "Shamirpet SR01/02", "SR", "40", 0.0, "ON"),
+            ("CG-D01-SR07", "Shamirpet SR07", "SR", "65", 0.0, "ON"),
+            ("21300007", "Compack Containers", "IPNG", "125 MM", 0.0, "ON"),
+            ("21300016", "Tunav / Aparna Alum.", "IPNG", "125 MM", 0.0, "ON"),
+            ("S03-D03-PE01", "S03-D03-PE01", "VALVE", "125 MM", 0.0, "ON"),
+            ("S03-D03-PE02", "S03-D03-PE02", "VALVE", "63 MM", 0.0, "ON"),
+            ("S03-D03-PE03", "S03-D03-PE03", "VALVE", "125 MM", 0.0, "ON"),
+            ("S03-D03-PE03/1", "S03-D03-PE03/1", "VALVE", "63 MM", 0.0, "ON"),
+            ("S03-D03-PE04", "S03-D03-PE04", "VALVE", "125 MM", 0.0, "ON"),
+            ("S03-D03-PE06", "S03-D03-PE06", "VALVE", "125 MM", 0.0, "ON"),
+            ("S03-D03-PE07", "S03-D03-PE07", "VALVE", "125 MM", 0.0, "ON"),
+            ("21300015", "NED Energy Ltd", "IPNG", "125 MM", 0.0, "ON"),
+            ("21300095", "New Delta Coats", "IPNG", "125 MM", 0.0, "ON"),
+            ("21300071", "SRH Rubbers Industries", "IPNG", "125 MM", 0.0, "ON"),
+            ("21100002", "Kayempee Foods Unit 1", "IPNG", "125 MM", 0.0, "ON"),
+            ("21100007", "Kayempee Foods Unit 2", "IPNG", "125 MM", 0.0, "ON"),
+            ("21300005", "Surya Masala Ltd.", "IPNG", "125 MM", 0.0, "ON"),
+            ("21100001", "Sumo Biscuits", "IPNG", "125 MM", 0.0, "ON"),
+            ("21100008", "Biking Foods", "IPNG", "125 MM", 0.0, "ON"),
+            ("21300055", "Radhan Industries", "IPNG", "125 MM", 0.0, "ON"),
+            ("21300038", "Maheswari Fasteners", "IPNG", "125 MM", 0.0, "ON"),
+            ("21300052", "Prasad Seeds Ltd.", "IPNG", "125 MM", 0.0, "ON"),
+            ("S02-D02-PE01", "S02-D02-PE01", "VALVE", "125 MM", 0.0, "ON"),
+            ("S02-D02-PE02", "S02-D02-PE02", "VALVE", "63 MM", 0.0, "ON"),
+            ("S02-D02-PE04", "S02-D02-PE04", "VALVE", "63 MM", 0.0, "ON"),
+            ("S02-D02-PE06", "S02-D02-PE06", "VALVE", "32 MM", 0.0, "ON"),
+            ("S02-D02-PE07", "S02-D02-PE07", "VALVE", "90 MM", 0.0, "ON"),
+            ("S02-D02-PE07/02", "S02-D02-PE07/02", "VALVE", "63 MM", 0.0, "ON"),
+            ("S02-D02-PE08", "S02-D02-PE08", "VALVE", "125 MM", 0.0, "ON"),
+            ("D02-SR10", "Medchal Residential", "SR", "25", 0.0, "ON"),
+            ("D02-SR08", "Medchal East SR", "SR", "25", 0.0, "ON"),
+            ("31000015", "Hare Krishna Satsang", "CPNG", "125 MM", 0.0, "ON"),
+            ("31000002", "Hitech Modern School", "CPNG", "125 MM", 0.0, "ON"),
+            ("31000008", "John Foundation", "CPNG", "125 MM", 0.0, "ON"),
+            ("31000024", "Manasa Womens Hostel", "CPNG", "125 MM", 0.0, "ON"),
+            ("31000045", "Seasons Bar & Rest.", "CPNG", "125 MM", 0.0, "ON")
+        ]
+        cursor.executemany("INSERT INTO assets VALUES (?,?,?,?,?,?)", default_assets)
 
-    # D01 Consumers
-    "31000003": {"id": "31000003", "type": "CPNG", "name": "IPE Univ. Canteen", "tag": "125 MM", "status": "ON"},
-    "CG-D01-SR03": {"id": "CG-D01-SR03", "type": "SR", "name": "Shamirpet SR03/04", "tag": "40", "status": "ON"},
-    "CG-D01-SR01": {"id": "CG-D01-SR01", "type": "SR", "name": "Shamirpet SR01/02", "tag": "40", "status": "ON"},
-    "CG-D01-SR07": {"id": "CG-D01-SR07", "type": "SR", "name": "Shamirpet SR07", "tag": "65", "status": "ON"},
-    "21300007": {"id": "21300007", "type": "IPNG", "name": "Compack Containers", "tag": "125 MM", "status": "ON"},
-    "21300016": {"id": "21300016", "type": "IPNG", "name": "Tunav / Aparna Alum.", "tag": "125 MM", "status": "ON"},
+        default_pipelines = [
+            ("D01", "D01-DIR-01"), ("D01", "D01-DIR-02"), ("D01", "D01-DIR-03"), ("D01", "D01-DIR-04"),
+            ("D01", "CG-D01-PE01"), ("D01", "CG-D01-PE02"), ("D01", "CG-D01-PE03"),
+            ("CG-D01-PE01", "31000003"),
+            ("CG-D01-PE02", "CG-D01-SR03"), ("CG-D01-PE02", "CG-D01-PE02/01"),
+            ("CG-D01-PE02/01", "CG-D01-PE02/02"), ("CG-D01-PE02/02", "CG-D01-SR01"),
+            ("CG-D01-PE02/02", "CG-D01-PE02/03"), ("CG-D01-PE02/03", "CG-D01-SR07"),
+            ("CG-D01-PE03", "CG-D01-PE04"), ("CG-D01-PE04", "CG-D01-PE04/01"),
+            ("CG-D01-PE04/01", "CG-D01-PE04/02"), ("CG-D01-PE04/02", "CG-D01-PE04/03"),
+            ("CG-D01-PE04/03", "21300007"),
+            ("CG-D01-PE04/01", "CG-D01-PE05"),
+            ("CG-D01-PE05", "CG-D01-PE05/01"), ("CG-D01-PE05/01", "21300016"),
+            ("CG-D01-PE05/01", "CG-D01-PE06"), ("CG-D01-PE06", "CG-D01-PE07"),
+            ("CG-D01-PE07", "CG-D01-PE07/01"),
+            ("D03", "S03-D03-PE01"), ("D03", "S03-D03-PE02"), ("D03", "S03-D03-PE03"),
+            ("S03-D03-PE01", "21300015"), ("S03-D03-PE01", "21300095"), ("S03-D03-PE01", "21300071"),
+            ("S03-D03-PE01", "S03-D03-PE06"),
+            ("S03-D03-PE06", "21300055"), ("S03-D03-PE06", "21300038"),
+            ("S03-D03-PE06", "S03-D03-PE07"),
+            ("S03-D03-PE07", "21300052"),
+            ("S03-D03-PE02", "21100002"), ("S03-D03-PE02", "21100007"),
+            ("S03-D03-PE03", "21300005"), ("S03-D03-PE03", "S03-D03-PE03/1"),
+            ("S03-D03-PE03/1", "21100001"), ("S03-D03-PE03/1", "21100008"),
+            ("S03-D03-PE03/1", "S03-D03-PE04"),
+            ("D02", "S02-D02-PE01"), ("D02", "S02-D02-PE02"), ("D02", "S02-D02-PE06"), ("D02", "S02-D02-PE08"),
+            ("S02-D02-PE01", "D02-SR10"), ("S02-D02-PE01", "D02-SR08"), ("S02-D02-PE01", "31000015"),
+            ("S02-D02-PE01", "S02-D02-PE04"),
+            ("S02-D02-PE04", "31000002"), ("S02-D02-PE04", "31000008"),
+            ("S02-D02-PE02", "31000024"),
+            ("S02-D02-PE06", "31000045"),
+            ("S02-D02-PE08", "S02-D02-PE07"),
+            ("S02-D02-PE07", "S02-D02-PE07/02"),
+            ("CG-D01-PE05", "S03-D03-PE04"),
+            ("S03-D03-PE04", "S02-D02-PE08")
+        ]
+        cursor.executemany("INSERT INTO pipelines VALUES (?,?)", default_pipelines)
+        conn.commit()
+    conn.close()
 
-    # D03 Valves & Consumers
-    "S03-D03-PE01": {"id": "S03-D03-PE01", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "S03-D03-PE02": {"id": "S03-D03-PE02", "type": "VALVE", "tag": "63 MM", "status": "ON"},
-    "S03-D03-PE03": {"id": "S03-D03-PE03", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "S03-D03-PE03/1": {"id": "S03-D03-PE03/1", "type": "VALVE", "tag": "63 MM", "status": "ON"},
-    "S03-D03-PE04": {"id": "S03-D03-PE04", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "S03-D03-PE06": {"id": "S03-D03-PE06", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "S03-D03-PE07": {"id": "S03-D03-PE07", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "21300015": {"id": "21300015", "type": "IPNG", "name": "NED Energy Ltd", "tag": "125 MM", "status": "ON"},
-    "21300095": {"id": "21300095", "type": "IPNG", "name": "New Delta Coats", "tag": "125 MM", "status": "ON"},
-    "21300071": {"id": "21300071", "type": "IPNG", "name": "SRH Rubbers Industries", "tag": "125 MM", "status": "ON"},
-    "21100002": {"id": "21100002", "type": "IPNG", "name": "Kayempee Foods Unit 1", "tag": "125 MM", "status": "ON"},
-    "21100007": {"id": "21100007", "type": "IPNG", "name": "Kayempee Foods Unit 2", "tag": "125 MM", "status": "ON"},
-    "21300005": {"id": "21300005", "type": "IPNG", "name": "Surya Masala Ltd.", "tag": "125 MM", "status": "ON"},
-    "21100001": {"id": "21100001", "type": "IPNG", "name": "Sumo Biscuits", "tag": "125 MM", "status": "ON"},
-    "21100008": {"id": "21100008", "type": "IPNG", "name": "Biking Foods", "tag": "125 MM", "status": "ON"},
-    "21300055": {"id": "21300055", "type": "IPNG", "name": "Radhan Industries", "tag": "125 MM", "status": "ON"},
-    "21300038": {"id": "21300038", "type": "IPNG", "name": "Maheswari Fasteners", "tag": "125 MM", "status": "ON"},
-    "21300052": {"id": "21300052", "type": "IPNG", "name": "Prasad Seeds Ltd.", "tag": "125 MM", "status": "ON"},
+# Start DB on launch
+init_db()
 
-    # D02 Valves & Consumers
-    "S02-D02-PE01": {"id": "S02-D02-PE01", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "S02-D02-PE02": {"id": "S02-D02-PE02", "type": "VALVE", "tag": "63 MM", "status": "ON"},
-    "S02-D02-PE04": {"id": "S02-D02-PE04", "type": "VALVE", "tag": "63 MM", "status": "ON"},
-    "S02-D02-PE06": {"id": "S02-D02-PE06", "type": "VALVE", "tag": "32 MM", "status": "ON"},
-    "S02-D02-PE07": {"id": "S02-D02-PE07", "type": "VALVE", "tag": "90 MM", "status": "ON"},
-    "S02-D02-PE07/02": {"id": "S02-D02-PE07/02", "type": "VALVE", "tag": "63 MM", "status": "ON"},
-    "S02-D02-PE08": {"id": "S02-D02-PE08", "type": "VALVE", "tag": "125 MM", "status": "ON"},
-    "D02-SR10": {"id": "D02-SR10", "type": "SR", "name": "Medchal Residential", "tag": "25", "status": "ON"},
-    "D02-SR08": {"id": "D02-SR08", "type": "SR", "name": "Medchal East SR", "tag": "25", "status": "ON"},
-    "31000015": {"id": "31000015", "type": "CPNG", "name": "Hare Krishna Satsang", "tag": "125 MM", "status": "ON"},
-    "31000002": {"id": "31000002", "type": "CPNG", "name": "Hitech Modern School", "tag": "125 MM", "status": "ON"},
-    "31000008": {"id": "31000008", "type": "CPNG", "name": "John Foundation", "tag": "125 MM", "status": "ON"},
-    "31000024": {"id": "31000024", "type": "CPNG", "name": "Manasa Womens Hostel", "tag": "125 MM", "status": "ON"},
-    "31000045": {"id": "31000045", "type": "CPNG", "name": "Seasons Bar & Rest.", "tag": "125 MM", "status": "ON"}
-}
+# ==========================================
+# 2. DB DATA LOADERS & GRAPH BUILDER
+# ==========================================
+def load_network_from_db():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM assets")
+    assets = {row["id"]: dict(row) for row in cursor.fetchall()}
+    
+    cursor.execute("SELECT source_id, target_id FROM pipelines")
+    pipelines = [(row["source_id"], row["target_id"]) for row in cursor.fetchall()]
+    conn.close()
 
-# Network Topology Pipelines
-PIPELINES = [
-    # D01 Direct Spurs
-    ("D01", "D01-DIR-01"), ("D01", "D01-DIR-02"), ("D01", "D01-DIR-03"), ("D01", "D01-DIR-04"),
+    G = nx.Graph()
+    for u, v in pipelines:
+        G.add_edge(u, v)
 
-    # D01 Distribution
-    ("D01", "CG-D01-PE01"), ("D01", "CG-D01-PE02"), ("D01", "CG-D01-PE03"),
-    ("CG-D01-PE01", "31000003"),
-    ("CG-D01-PE02", "CG-D01-SR03"), ("CG-D01-PE02", "CG-D01-PE02/01"),
-    ("CG-D01-PE02/01", "CG-D01-PE02/02"), ("CG-D01-PE02/02", "CG-D01-SR01"),
-    ("CG-D01-PE02/02", "CG-D01-PE02/03"), ("CG-D01-PE02/03", "CG-D01-SR07"),
-    ("CG-D01-PE03", "CG-D01-PE04"), ("CG-D01-PE04", "CG-D01-PE04/01"),
-    ("CG-D01-PE04/01", "CG-D01-PE04/02"), ("CG-D01-PE04/02", "CG-D01-PE04/03"),
-    ("CG-D01-PE04/03", "21300007"),
-    ("CG-D01-PE04/01", "CG-D01-PE05"),
-    ("CG-D01-PE05", "CG-D01-PE05/01"), ("CG-D01-PE05/01", "21300016"),
-    ("CG-D01-PE05/01", "CG-D01-PE06"), ("CG-D01-PE06", "CG-D01-PE07"),
-    ("CG-D01-PE07", "CG-D01-PE07/01"),
-
-    # D03 Distribution
-    ("D03", "S03-D03-PE01"), ("D03", "S03-D03-PE02"), ("D03", "S03-D03-PE03"),
-    ("S03-D03-PE01", "21300015"), ("S03-D03-PE01", "21300095"), ("S03-D03-PE01", "21300071"),
-    ("S03-D03-PE01", "S03-D03-PE06"),
-    ("S03-D03-PE06", "21300055"), ("S03-D03-PE06", "21300038"),
-    ("S03-D03-PE06", "S03-D03-PE07"),
-    ("S03-D03-PE07", "21300052"),
-    ("S03-D03-PE02", "21100002"), ("S03-D03-PE02", "21100007"),
-    ("S03-D03-PE03", "21300005"), ("S03-D03-PE03", "S03-D03-PE03/1"),
-    ("S03-D03-PE03/1", "21100001"), ("S03-D03-PE03/1", "21100008"),
-    ("S03-D03-PE03/1", "S03-D03-PE04"),
-
-    # D02 Distribution
-    ("D02", "S02-D02-PE01"), ("D02", "S02-D02-PE02"), ("D02", "S02-D02-PE06"), ("D02", "S02-D02-PE08"),
-    ("S02-D02-PE01", "D02-SR10"), ("S02-D02-PE01", "D02-SR08"), ("S02-D02-PE01", "31000015"),
-    ("S02-D02-PE01", "S02-D02-PE04"),
-    ("S02-D02-PE04", "31000002"), ("S02-D02-PE04", "31000008"),
-    ("S02-D02-PE02", "31000024"),
-    ("S02-D02-PE06", "31000045"),
-    ("S02-D02-PE08", "S02-D02-PE07"),
-    ("S02-D02-PE07", "S02-D02-PE07/02"),
-
-    # Inter-DRS Ring Loops
-    ("CG-D01-PE05", "S03-D03-PE04"),
-    ("S03-D03-PE04", "S02-D02-PE08")
-]
-
-G = nx.Graph()
-for u, v in PIPELINES:
-    G.add_edge(u, v)
+    return assets, pipelines, G
 
 # Request Models
 class ToggleReq(BaseModel):
@@ -154,18 +194,23 @@ class PipelineCreateReq(BaseModel):
     source_id: str
     target_id: str
 
+# ==========================================
+# 3. BFS GAS FLOW ENGINE
+# ==========================================
 def run_scada_bfs_flow():
+    assets, pipelines, G = load_network_from_db()
+
     active_drs = [
-        k for k, v in ASSETS.items() 
+        k for k, v in assets.items() 
         if v.get("type") == "DRS" and v.get("status") == "ON"
     ]
-    active_drs.sort(key=lambda x: ASSETS[x].get("pressure", 0.0), reverse=True)
+    active_drs.sort(key=lambda x: assets[x].get("pressure", 0.0), reverse=True)
 
     gas_supply = {node: False for node in G.nodes()}
     fed_by = {}
 
     for drs in active_drs:
-        press = ASSETS[drs].get("pressure", 4.0)
+        press = assets[drs].get("pressure", 4.0)
         gas_supply[drs] = True
         fed_by[drs] = {"id": drs, "pressure": press}
         q = [drs]
@@ -174,8 +219,8 @@ def run_scada_bfs_flow():
         while q:
             curr = q.pop(0)
 
-            # ONLY CLOSED VALVES BLOCK FLOW
-            if ASSETS.get(curr, {}).get("type") == "VALVE" and ASSETS.get(curr, {}).get("status") == "OFF":
+            # CLOSED VALVES STOP GAS FLOW
+            if assets.get(curr, {}).get("type") == "VALVE" and assets.get(curr, {}).get("status") == "OFF":
                 continue
 
             for nbr in G.neighbors(curr):
@@ -186,8 +231,11 @@ def run_scada_bfs_flow():
                         fed_by[nbr] = fed_by[curr]
                     q.append(nbr)
 
-    return gas_supply, fed_by
+    return assets, pipelines, gas_supply, fed_by
 
+# ==========================================
+# 4. API ENDPOINTS (CONNECTED TO DATABASE)
+# ==========================================
 @app.get("/")
 def index():
     if os.path.exists(INDEX_HTML):
@@ -196,113 +244,122 @@ def index():
 
 @app.get("/api/snapshot")
 def get_snapshot():
-    supply, fed_by = run_scada_bfs_flow()
+    assets, pipelines, supply, fed_by = run_scada_bfs_flow()
     return {
-        "assets": ASSETS,
-        "pipelines": PIPELINES,
+        "assets": assets,
+        "pipelines": pipelines,
         "supply": supply,
         "fed_by": fed_by
     }
 
 @app.post("/api/toggle")
 def toggle_asset(req: ToggleReq):
-    if req.asset_id in ASSETS:
-        ASSETS[req.asset_id]["status"] = req.status
-    supply, fed_by = run_scada_bfs_flow()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE assets SET status = ? WHERE id = ?", (req.status, req.asset_id))
+    conn.commit()
+    conn.close()
+
+    assets, pipelines, supply, fed_by = run_scada_bfs_flow()
     return {
         "success": True,
-        "assets": ASSETS,
-        "pipelines": PIPELINES,
+        "assets": assets,
+        "pipelines": pipelines,
         "supply": supply,
         "fed_by": fed_by
     }
 
 @app.post("/api/pressure")
 def update_pressure(req: PressureReq):
-    if req.drs_id in ASSETS:
-        ASSETS[req.drs_id]["pressure"] = req.pressure
-    supply, fed_by = run_scada_bfs_flow()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE assets SET pressure = ? WHERE id = ?", (req.pressure, req.drs_id))
+    conn.commit()
+    conn.close()
+
+    assets, pipelines, supply, fed_by = run_scada_bfs_flow()
     return {
         "success": True,
-        "assets": ASSETS,
-        "pipelines": PIPELINES,
+        "assets": assets,
+        "pipelines": pipelines,
         "supply": supply,
         "fed_by": fed_by
     }
 
-# STEP 1: ADD ASSET ENDPOINT
 @app.post("/api/asset/add")
 def add_new_asset(req: AssetCreateReq):
     asset_id = req.id.strip()
     if not asset_id:
         return {"success": False, "message": "Asset ID ivvali!"}
-    
-    if asset_id in ASSETS:
-        return {"success": False, "message": f"Asset '{asset_id}' already undi!"}
 
-    ASSETS[asset_id] = {
-        "id": asset_id,
-        "name": req.name.strip() or asset_id,
-        "type": req.type.upper(),
-        "tag": req.tag.strip() or "125 MM",
-        "pressure": req.pressure if req.type.upper() == "DRS" else 0.0,
-        "status": "ON"
-    }
-    
-    if not G.has_node(asset_id):
-        G.add_node(asset_id)
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM assets WHERE id = ?", (asset_id,))
+    if cursor.fetchone():
+        conn.close()
+        return {"success": False, "message": f"Asset '{asset_id}' already database lo undi!"}
 
-    supply, fed_by = run_scada_bfs_flow()
+    press = req.pressure if req.type.upper() == "DRS" else 0.0
+    cursor.execute(
+        "INSERT INTO assets (id, name, type, tag, pressure, status) VALUES (?, ?, ?, ?, ?, 'ON')",
+        (asset_id, req.name.strip() or asset_id, req.type.upper(), req.tag.strip() or "125 MM", press)
+    )
+    conn.commit()
+    conn.close()
+
+    assets, pipelines, supply, fed_by = run_scada_bfs_flow()
     return {
         "success": True,
-        "message": f"Asset '{asset_id}' successfully create aindi!",
-        "assets": ASSETS,
-        "pipelines": PIPELINES,
+        "message": f"Asset '{asset_id}' database lo save aindi!",
+        "assets": assets,
+        "pipelines": pipelines,
         "supply": supply,
         "fed_by": fed_by
     }
 
-# STEP 2: LINK ASSETS ENDPOINT
 @app.post("/api/pipeline/add")
 def add_pipeline_link(req: PipelineCreateReq):
     src = req.source_id.strip()
     tgt = req.target_id.strip()
 
-    if not src or not tgt:
-        return {"success": False, "message": "Source mariyu Target rendu select cheyali!"}
+    if not src or not tgt or src == tgt:
+        return {"success": False, "message": "Verveeru valid assets ni select cheyandi!"}
 
-    if src == tgt:
-        return {"success": False, "message": "Same asset ki connect cheyalemu!"}
+    conn = get_db()
+    cursor = conn.cursor()
 
-    if src not in ASSETS or tgt not in ASSETS:
-        return {"success": False, "message": "Edo oka asset system lo ledu!"}
+    cursor.execute("SELECT source_id FROM pipelines WHERE (source_id=? AND target_id=?) OR (source_id=? AND target_id=?)", (src, tgt, tgt, src))
+    if cursor.fetchone():
+        conn.close()
+        return {"success": False, "message": "Ee link already database lo undi!"}
 
-    # Check already existing edge
-    if (src, tgt) in PIPELINES or (tgt, src) in PIPELINES:
-        return {"success": False, "message": "Ee rendu assets madhya link already undi!"}
+    cursor.execute("INSERT INTO pipelines (source_id, target_id) VALUES (?, ?)", (src, tgt))
+    conn.commit()
+    conn.close()
 
-    PIPELINES.append((src, tgt))
-    G.add_edge(src, tgt)
-
-    supply, fed_by = run_scada_bfs_flow()
+    assets, pipelines, supply, fed_by = run_scada_bfs_flow()
     return {
         "success": True,
-        "message": f"Link '{src}' ⟷ '{tgt}' successfully connect aindi!",
-        "assets": ASSETS,
-        "pipelines": PIPELINES,
+        "message": f"Link '{src}' ⟷ '{tgt}' database lo save aindi!",
+        "assets": assets,
+        "pipelines": pipelines,
         "supply": supply,
         "fed_by": fed_by
     }
 
 @app.post("/api/reset")
 def reset_all():
-    for k in ASSETS:
-        ASSETS[k]["status"] = "ON"
-    supply, fed_by = run_scada_bfs_flow()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE assets SET status = 'ON'")
+    conn.commit()
+    conn.close()
+
+    assets, pipelines, supply, fed_by = run_scada_bfs_flow()
     return {
         "success": True,
-        "assets": ASSETS,
-        "pipelines": PIPELINES,
+        "assets": assets,
+        "pipelines": pipelines,
         "supply": supply,
         "fed_by": fed_by
     }
