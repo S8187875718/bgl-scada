@@ -54,9 +54,9 @@
     .builder-bar {
       background: #ffffff;
       border-bottom: 1.5px solid #cbd5e1;
-      padding: 10px 14px;
+      padding: 8px 14px;
       display: flex;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
       align-items: center;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -64,30 +64,40 @@
     .builder-box {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       background: #f8fafc;
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: 8px;
       border: 1px solid #e2e8f0;
     }
-    .builder-box label { font-size: 0.75rem; font-weight: 800; color: #0369a1; }
+    .builder-box label { font-size: 0.72rem; font-weight: 800; color: #0369a1; white-space: nowrap; }
+    .builder-input, .builder-select {
+      font-size: 0.72rem;
+      padding: 4px 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-family: inherit;
+    }
     .builder-btn {
       background: #0284c7;
       color: #ffffff;
       border: none;
-      padding: 6px 12px;
-      font-size: 0.75rem;
+      padding: 5px 10px;
+      font-size: 0.72rem;
       font-weight: 700;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
+      white-space: nowrap;
       transition: background 0.15s;
     }
     .builder-btn:hover { background: #0369a1; }
     .excel-upload-btn { background: #16a34a; }
     .excel-upload-btn:hover { background: #15803d; }
+    .link-btn { background: #8b5cf6; }
+    .link-btn:hover { background: #7c3aed; }
 
     .overview-kpi-bar {
       background: #ffffff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 14px;
@@ -164,23 +174,47 @@
     </div>
   </header>
 
-  <!-- EXCEL DIRECT IMPORT PANEL -->
+  <!-- ALL BUILDER CONTROLS IN TOP BAR -->
   <div class="builder-bar">
+    <!-- 1. Excel Upload -->
     <div class="builder-box" style="background:#f0fdf4; border:1.5px solid #86efac;">
-      <label style="color:#166534;">📊 Direct Excel Import (Assets + Links):</label>
       <input type="file" id="excelFileInput" accept=".xlsx, .xlsm" style="display:none;" onchange="handleExcelUpload(event)">
       <button class="builder-btn excel-upload-btn" onclick="document.getElementById('excelFileInput').click()">📁 Upload Excel Sheet</button>
-      <span id="uploadStatusText" style="font-size:0.75rem; font-weight:700; color:#15803d;"></span>
+      <span id="uploadStatusText" style="font-size:0.72rem; font-weight:700; color:#15803d;"></span>
+    </div>
+
+    <!-- 2. Manual Link Assets (Parent -> Child) -->
+    <div class="builder-box" style="background:#f5f3ff; border:1.5px solid #c4b5fd;">
+      <label style="color:#6d28d9;">🔗 Manual Link:</label>
+      <select id="linkSource" class="builder-select" style="min-width:140px;"></select>
+      <span style="font-size:0.75rem; font-weight:bold; color:#6d28d9;">➔</span>
+      <select id="linkTarget" class="builder-select" style="min-width:140px;"></select>
+      <button class="builder-btn link-btn" onclick="submitLinkPipeline()">Link Assets</button>
+    </div>
+
+    <!-- 3. Add Single Asset -->
+    <div class="builder-box">
+      <label>➕ Add Asset:</label>
+      <input type="text" id="newAssetId" class="builder-input" placeholder="Asset ID" style="width:90px;">
+      <input type="text" id="newAssetName" class="builder-input" placeholder="Name" style="width:90px;">
+      <select id="newAssetType" class="builder-select">
+        <option value="VALVE">VALVE</option>
+        <option value="IPNG">IPNG</option>
+        <option value="CPNG">CPNG</option>
+        <option value="SR">SR</option>
+        <option value="DRS">DRS</option>
+      </select>
+      <button class="builder-btn" onclick="submitCreateAsset()">Add</button>
     </div>
   </div>
 
   <div class="overview-kpi-bar">
     <div style="font-size:0.85rem; font-weight:800; color:#0f172a; margin-right:8px;">🌳 Network Overview:</div>
-    <div class="kpi-card kpi-drs"><div class="num" id="kpiDrs">3</div><div class="lbl">DRS Stations</div></div>
-    <div class="kpi-card kpi-vc"><div class="num" id="kpiVc">26</div><div class="lbl">Valve Chambers</div></div>
-    <div class="kpi-card kpi-sr"><div class="num" id="kpiSr">12</div><div class="lbl">SR</div></div>
-    <div class="kpi-card kpi-ipng"><div class="num" id="kpiIpng">14</div><div class="lbl">IPNG</div></div>
-    <div class="kpi-card kpi-cpng"><div class="num" id="kpiCpng">8</div><div class="lbl">CPNG</div></div>
+    <div class="kpi-card kpi-drs"><div class="num" id="kpiDrs">0</div><div class="lbl">DRS Stations</div></div>
+    <div class="kpi-card kpi-vc"><div class="num" id="kpiVc">0</div><div class="lbl">Valve Chambers</div></div>
+    <div class="kpi-card kpi-sr"><div class="num" id="kpiSr">0</div><div class="lbl">SR</div></div>
+    <div class="kpi-card kpi-ipng"><div class="num" id="kpiIpng">0</div><div class="lbl">IPNG</div></div>
+    <div class="kpi-card kpi-cpng"><div class="num" id="kpiCpng">0</div><div class="lbl">CPNG</div></div>
   </div>
 
   <div class="main-wrapper">
@@ -217,7 +251,7 @@
     var startMouseX = 0, startMouseY = 0;
 
     function changeZoom(delta) {
-      currentZoom = Math.min(Math.max(currentZoom + delta, 0.22), 2.2);
+      currentZoom = Math.min(Math.max(currentZoom + delta, 0.15), 2.5);
       document.getElementById('zoomLevelText').innerText = Math.round(currentZoom * 100) + '%';
       applyTransform();
     }
@@ -287,13 +321,30 @@
       vp.addEventListener('touchend', function() { isDragging = false; });
     }
 
+    // UPDATE DROPDOWNS FOR MANUAL LINKING
+    function updateDropdownOptions() {
+      if (!scadaData || !scadaData.assets) return;
+      var srcSelect = document.getElementById('linkSource');
+      var tgtSelect = document.getElementById('linkTarget');
+      var ids = Object.keys(scadaData.assets).sort();
+
+      var optHtml = ids.map(function(id) {
+        var a = scadaData.assets[id];
+        return '<option value="' + id + '">' + id + ' (' + (a.type || 'VALVE') + ')</option>';
+      }).join('');
+
+      srcSelect.innerHTML = optHtml;
+      tgtSelect.innerHTML = optHtml;
+      if (ids.length > 1) tgtSelect.selectedIndex = 1;
+    }
+
     function updateKPIs() {
       if (!scadaData || !scadaData.assets) return;
       var drs = 0, vc = 0, sr = 0, ipng = 0, cpng = 0;
       Object.values(scadaData.assets).forEach(function(a) {
         var t = (a.type || '').toUpperCase();
         if (t === 'DRS') drs++;
-        else if (t === 'VALVE') vc++;
+        else if (t.includes('VALVE') || t === 'VC') vc++;
         else if (t === 'SR') sr++;
         else if (t === 'IPNG') ipng++;
         else if (t === 'CPNG') cpng++;
@@ -310,6 +361,7 @@
         const res = await fetch('/api/snapshot');
         scadaData = await res.json();
         document.getElementById('statusText').innerText = "⚡ Real-time Python Engine Active (Live Gas BFS Loop Engine)";
+        updateDropdownOptions();
         updateKPIs();
         renderPAndID();
       } catch (err) {
@@ -317,13 +369,13 @@
       }
     }
 
-    // DIRECT EXCEL FILE UPLOAD HANDLER
+    // 1. DIRECT EXCEL FILE UPLOAD
     async function handleExcelUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const statusSpan = document.getElementById('uploadStatusText');
-      statusSpan.innerText = "⏳ Uploading & Importing Excel...";
+      statusSpan.innerText = "⏳ Uploading & Importing...";
 
       const formData = new FormData();
       formData.append('file', file);
@@ -335,21 +387,85 @@
         });
         const data = await res.json();
         if (data.success) {
-          statusSpan.innerText = "✅ Successfully Imported!";
+          statusSpan.innerText = "✅ Imported!";
           alert("🎉 " + data.message);
           scadaData = data;
+          updateDropdownOptions();
           updateKPIs();
           renderPAndID();
         } else {
-          statusSpan.innerText = "❌ Import Failed";
+          statusSpan.innerText = "❌ Failed";
           alert("Error: " + data.message);
         }
       } catch (err) {
-        statusSpan.innerText = "❌ Upload Error";
+        statusSpan.innerText = "❌ Error";
         alert("Upload error: " + err.message);
       } finally {
         event.target.value = '';
         setTimeout(() => { statusSpan.innerText = ''; }, 4500);
+      }
+    }
+
+    // 2. MANUAL LINK ASSETS (SUBMIT)
+    async function submitLinkPipeline() {
+      var src = document.getElementById('linkSource').value;
+      var tgt = document.getElementById('linkTarget').value;
+
+      if (!src || !tgt || src === tgt) {
+        alert("దయచేసి రెండు వేర్వేరు Assets ని ఎంచుకోండి!");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/pipeline/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source_id: src, target_id: tgt })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert("✅ " + data.message);
+          scadaData = data;
+          renderPAndID();
+        } else {
+          alert("⚠️ " + data.message);
+        }
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
+    }
+
+    // 3. MANUAL CREATE ASSET
+    async function submitCreateAsset() {
+      var id = document.getElementById('newAssetId').value.trim();
+      var name = document.getElementById('newAssetName').value.trim();
+      var type = document.getElementById('newAssetType').value;
+
+      if (!id) {
+        alert("Asset ID తప్పనిసరి!");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/asset/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id, name: name || id, type: type, tag: '125 MM' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert("✅ " + data.message);
+          scadaData = data;
+          document.getElementById('newAssetId').value = '';
+          document.getElementById('newAssetName').value = '';
+          updateDropdownOptions();
+          updateKPIs();
+          renderPAndID();
+        } else {
+          alert("⚠️ " + data.message);
+        }
+      } catch (e) {
+        alert("Error: " + e.message);
       }
     }
 
