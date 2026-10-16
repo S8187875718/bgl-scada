@@ -54,6 +54,18 @@
     .overview-card { background: #fff; border: 1px solid #d8e8f5; border-radius: 12px; padding: 12px; }
     .scada-viewport { position: relative; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; width: 100%; height: 740px; overflow: hidden; cursor: grab; touch-action: none; user-select: none; }
     .scada-viewport:active { cursor: grabbing; }
+    .drs-overview-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:8px 2px 6px; color:#0c4a6e; font-size:0.78rem; font-weight:800; }
+    .drs-overview-heading span:last-child { color:#64748b; font-size:0.68rem; font-weight:600; }
+    .drs-overview-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:7px; margin-bottom:10px; }
+    .drs-overview-card { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:auto auto auto; gap:2px 8px; min-width:0; min-height:58px; padding:7px 9px; border:1px solid #bfdbfe; border-left:4px solid #16a34a; border-radius:8px; background:#f8fafc; color:#0f172a; text-align:left; cursor:pointer; }
+    .drs-overview-card:hover { background:#eff6ff; border-color:#60a5fa; }
+    .drs-overview-card.off { border-left-color:#ef4444; background:#fff7f7; }
+    .drs-overview-id { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--font-tech); font-size:0.75rem; font-weight:800; color:#0c4a6e; }
+    .drs-overview-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.68rem; font-weight:700; color:#334155; }
+    .drs-overview-meta { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.62rem; font-weight:600; color:#64748b; }
+    .drs-overview-status { grid-column:2; grid-row:1 / span 3; align-self:center; padding:3px 7px; border-radius:12px; background:#dcfce7; color:#166534; font-size:0.61rem; font-weight:800; white-space:nowrap; }
+    .drs-overview-card.off .drs-overview-status { background:#fee2e2; color:#b91c1c; }
+    @media (max-width:600px) { .drs-overview-heading { align-items:flex-start; flex-direction:column; } .drs-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     .zoom-toolbar { display: flex; align-items: center; gap: 5px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 3px 8px; }
     .zoom-btn { background: #fff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 3px 8px; font-size: 0.72rem; font-weight: 800; cursor: pointer; }
     .zoom-btn:hover { background: #e0f2fe; color: #0284c7; }
@@ -157,6 +169,11 @@
       </div>
 
       <div style="margin:8px 0; font-size:0.84rem; font-weight:700; color:#0284c7;" id="statusText">⚡ Initializing SCADA Engine...</div>
+      <div class="drs-overview-heading">
+        <span>📍 DRS Stations on Map (<strong id="drsOverviewCount">0</strong>)</span>
+        <span>Select a station to center it in the schematic</span>
+      </div>
+      <div class="drs-overview-grid" id="drsStationOverview" aria-label="All DRS stations"></div>
       <div class="scada-viewport" id="viewport"></div>
     </div>
   </div>
@@ -253,12 +270,24 @@
       if (g) g.setAttribute('transform', 'translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')');
     }
 
-    function focusStation(stn) {
+    function focusStation(stn, centerDrs = false) {
       var vpWidth = document.getElementById('viewport').clientWidth || 1200;
       if (stn === 'ALL') { currentZoom = 0.22; panX = 20; panY = 20; }
-      else if (stn === 'D01') { currentZoom = 0.85; panX = 40; panY = 20; }
-      else if (stn === 'D03') { currentZoom = 0.85; panX = -(2400 * currentZoom) + (vpWidth / 2); panY = 20; }
-      else if (stn === 'D02') { currentZoom = 0.85; panX = -(4200 * currentZoom) + (vpWidth / 2); panY = 20; }
+      else if (!centerDrs && stn === 'D01') { currentZoom = 0.85; panX = 40; panY = 20; }
+      else if (!centerDrs && stn === 'D03') { currentZoom = 0.85; panX = -(2400 * currentZoom) + (vpWidth / 2); panY = 20; }
+      else if (!centerDrs && stn === 'D02') { currentZoom = 0.85; panX = -(4200 * currentZoom) + (vpWidth / 2); panY = 20; }
+      else {
+        var drsNodes = Object.values((scadaData && scadaData.assets) || {})
+          .filter(a => (a.type || '').toUpperCase() === 'DRS')
+          .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+        var drsIndex = drsNodes.findIndex(a => a.id === stn);
+        if (drsIndex >= 0) {
+          currentZoom = 0.85;
+          var drsX = 1650 + drsIndex * 2800;
+          panX = (vpWidth / 2) - (drsX * currentZoom);
+          panY = 20;
+        }
+      }
       changeZoom(0);
     }
 
@@ -278,7 +307,45 @@
     function refreshUI() {
       if (!scadaData || !scadaData.assets) return;
       document.getElementById('statusText').innerText = "⚡ SCADA Active (" + Object.keys(scadaData.assets).length + " Assets, " + (scadaData.pipelines ? scadaData.pipelines.length : 0) + " Links)";
-      updateKPIs(); updateDropdowns(); renderPAndID();
+      updateKPIs(); updateDropdowns(); renderDRSOverview(); renderPAndID();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, function(ch) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+      });
+    }
+
+    function renderDRSOverview() {
+      var grid = document.getElementById('drsStationOverview');
+      if (!grid || !scadaData || !scadaData.assets) return;
+
+      var drsNodes = Object.values(scadaData.assets)
+        .filter(a => (a.type || '').toUpperCase() === 'DRS')
+        .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+      document.getElementById('drsOverviewCount').textContent = drsNodes.length;
+
+      grid.innerHTML = drsNodes.map(function(d) {
+        var id = String(d.id || '');
+        var status = String(d.status || 'OFF').toUpperCase();
+        var stateClass = status === 'ON' ? 'on' : 'off';
+        var pressure = d.pressure == null || d.pressure === '' ? '—' : String(d.pressure);
+        var location = String(d.location || 'Location not set');
+        return '<button type="button" class="drs-overview-card ' + stateClass +
+          '" data-station-id="' + escapeHtml(id) + '" title="' + escapeHtml(location) +
+          '" aria-label="Locate ' + escapeHtml(id) + ' on the schematic">' +
+          '<span class="drs-overview-id">⚡ ' + escapeHtml(id) + '</span>' +
+          '<span class="drs-overview-name">' + escapeHtml(d.name || id) + '</span>' +
+          '<span class="drs-overview-meta">' + escapeHtml(pressure) + ' Bar · 📍 ' + escapeHtml(location) + '</span>' +
+          '<span class="drs-overview-status">● ' + escapeHtml(status) + '</span>' +
+          '</button>';
+      }).join('');
+
+      grid.querySelectorAll('.drs-overview-card').forEach(function(button) {
+        button.addEventListener('click', function() {
+          focusStation(button.getAttribute('data-station-id'), true);
+        });
+      });
     }
 
     function updateKPIs() {
@@ -481,8 +548,9 @@
       var A = scadaData.assets, S = scadaData.supply, F = scadaData.fed_by;
 
       // Dynamic Multi-DRS Header Placement
-      var drsNodes = Object.values(A).filter(a => (a.type||'').toUpperCase() === 'DRS');
-      var svgW = Math.max(8800, drsNodes.length * 2500);
+      var drsNodes = Object.values(A).filter(a => (a.type||'').toUpperCase() === 'DRS').sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
+      var lastDrsExtent = drsNodes.length ? 1650 + (drsNodes.length - 1) * 2800 + 1400 : 0;
+      var svgW = Math.max(8800, lastDrsExtent + 400);
       var svg = `<svg id="mainScadaSvg" viewBox="0 0 ${svgW} 1400" width="${svgW}px" height="1400px" style="background:#fff;">
         <g id="panZoomGroup" transform="translate(${panX},${panY}) scale(${currentZoom})">`;
 
