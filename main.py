@@ -22,103 +22,22 @@ def get_db():
 def seed_default_network(cursor):
     now = datetime.now().strftime("%Y-%m-%d")
     default_assets = [
-        ("D01", "MS DRS", "DRS", "125 MM", "4.1 Bar", now, now, "ON", "Shamirpet", 4.1),
-        ("D03", "Check Post DRS", "DRS", "125 MM", "3.6 Bar", now, now, "ON", "Check Post", 3.6),
-        ("D02", "Depo DRS", "DRS", "125 MM", "3.1 Bar", now, now, "ON", "Depo", 3.1),
+        ("D01", "MS DRS", "DRS", "125 MM", "4.1 Bar", now, now, "ON", "Shamirpet, Hyderabad", 4.1),
+        ("D03", "Check Post DRS", "DRS", "125 MM", "3.6 Bar", now, now, "ON", "Check Post, Hyderabad", 3.6),
+        ("D02", "Depo DRS", "DRS", "125 MM", "3.1 Bar", now, now, "ON", "Medchal, Hyderabad", 3.1),
         ("D01-DIR-01", "Registrar, Nalsar Univ.", "CPNG", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("D01-DIR-02", "Shamirpet Spur 01", "SR", "25", "", now, now, "ON", "Shamirpet", 0.0),
-        ("D01-DIR-03", "Shamirpet Spur 02", "SR", "25", "", now, now, "ON", "Shamirpet", 0.0),
-        ("D01-DIR-04", "Shamirpet Spur 03", "SR", "25", "", now, now, "ON", "Shamirpet", 0.0),
         ("CG-D01-PE01", "CG-D01-PE01", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
         ("CG-D01-PE02", "CG-D01-PE02", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE02/01", "CG-D01-PE02/01", "VALVE", "90 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE02/02", "CG-D01-PE02/02", "VALVE", "90 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE02/03", "CG-D01-PE02/03", "VALVE", "63 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE03", "CG-D01-PE03", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE04", "CG-D01-PE04", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE04/01", "CG-D01-PE04/01", "VALVE", "90 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE04/02", "CG-D01-PE04/02", "VALVE", "90 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE04/03", "CG-D01-PE04/03", "VALVE", "90 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE05", "CG-D01-PE05", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE05/01", "CG-D01-PE05/01", "VALVE", "90 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE06", "CG-D01-PE06", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE07", "CG-D01-PE07", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE07/01", "CG-D01-PE07/01", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
         ("31000003", "IPE Univ. Canteen", "CPNG", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-SR03", "Shamirpet SR03/04", "SR", "40", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-SR01", "Shamirpet SR01/02", "SR", "40", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-SR07", "Shamirpet SR07", "SR", "65", "", now, now, "ON", "Shamirpet", 0.0),
-        ("21300007", "Compack Containers", "IPNG", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("21300016", "Tunav / Aparna Alum.", "IPNG", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
         ("S03-D03-PE01", "S03-D03-PE01", "VALVE", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("S03-D03-PE02", "S03-D03-PE02", "VALVE", "63 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("S03-D03-PE03", "S03-D03-PE03", "VALVE", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("S03-D03-PE03/1", "S03-D03-PE03/1", "VALVE", "63 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("S03-D03-PE04", "S03-D03-PE04", "VALVE", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("S03-D03-PE06", "S03-D03-PE06", "VALVE", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("S03-D03-PE07", "S03-D03-PE07", "VALVE", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21300015", "NED Energy Ltd", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21300095", "New Delta Coats", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21300071", "SRH Rubbers Industries", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21100002", "Kayempee Foods Unit 1", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21100007", "Kayempee Foods Unit 2", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21300005", "Surya Masala Ltd.", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21100001", "Sumo Biscuits", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21100008", "Biking Foods", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21300055", "Radhan Industries", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21300038", "Maheswari Fasteners", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("21300052", "Prasad Seeds Ltd.", "IPNG", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("S02-D02-PE01", "S02-D02-PE01", "VALVE", "125 MM", "", now, now, "ON", "Depo", 0.0),
-        ("S02-D02-PE02", "S02-D02-PE02", "VALVE", "63 MM", "", now, now, "ON", "Depo", 0.0),
-        ("S02-D02-PE04", "S02-D02-PE04", "VALVE", "63 MM", "", now, now, "ON", "Depo", 0.0),
-        ("S02-D02-PE06", "S02-D02-PE06", "VALVE", "32 MM", "", now, now, "ON", "Depo", 0.0),
-        ("S02-D02-PE07", "S02-D02-PE07", "VALVE", "90 MM", "", now, now, "ON", "Depo", 0.0),
-        ("S02-D02-PE07/02", "S02-D02-PE07/02", "VALVE", "63 MM", "", now, now, "ON", "Depo", 0.0),
-        ("S02-D02-PE08", "S02-D02-PE08", "VALVE", "125 MM", "", now, now, "ON", "Depo", 0.0),
-        ("D02-SR10", "Medchal Residential", "SR", "25", "", now, now, "ON", "Depo", 0.0),
-        ("D02-SR08", "Medchal East SR", "SR", "25", "", now, now, "ON", "Depo", 0.0),
-        ("31000015", "Hare Krishna Satsang", "CPNG", "125 MM", "", now, now, "ON", "Depo", 0.0),
-        ("31000002", "Hitech Modern School", "CPNG", "125 MM", "", now, now, "ON", "Depo", 0.0),
-        ("31000008", "John Foundation", "CPNG", "125 MM", "", now, now, "ON", "Depo", 0.0),
-        ("31000024", "Manasa Womens Hostel", "CPNG", "125 MM", "", now, now, "ON", "Depo", 0.0),
-        ("31000045", "Seasons Bar & Rest.", "CPNG", "125 MM", "", now, now, "ON", "Depo", 0.0)
+        ("S02-D02-PE01", "S02-D02-PE01", "VALVE", "125 MM", "", now, now, "ON", "Medchal", 0.0)
     ]
     cursor.executemany("INSERT OR REPLACE INTO assets VALUES (?,?,?,?,?,?,?,?,?,?)", default_assets)
 
     default_pipelines = [
-        ("D01", "D01-DIR-01", now), ("D01", "D01-DIR-02", now), ("D01", "D01-DIR-03", now), ("D01", "D01-DIR-04", now),
-        ("D01", "CG-D01-PE01", now), ("D01", "CG-D01-PE02", now), ("D01", "CG-D01-PE03", now),
-        ("CG-D01-PE01", "31000003", now),
-        ("CG-D01-PE02", "CG-D01-SR03", now), ("CG-D01-PE02", "CG-D01-PE02/01", now),
-        ("CG-D01-PE02/01", "CG-D01-PE02/02", now), ("CG-D01-PE02/02", "CG-D01-SR01", now),
-        ("CG-D01-PE02/02", "CG-D01-PE02/03", now), ("CG-D01-PE02/03", "CG-D01-SR07", now),
-        ("CG-D01-PE03", "CG-D01-PE04", now), ("CG-D01-PE04", "CG-D01-PE04/01", now),
-        ("CG-D01-PE04/01", "CG-D01-PE04/02", now), ("CG-D01-PE04/02", "CG-D01-PE04/03", now),
-        ("CG-D01-PE04/03", "21300007", now),
-        ("CG-D01-PE04/01", "CG-D01-PE05", now),
-        ("CG-D01-PE05", "CG-D01-PE05/01", now), ("CG-D01-PE05/01", "21300016", now),
-        ("CG-D01-PE05/01", "CG-D01-PE06", now), ("CG-D01-PE06", "CG-D01-PE07", now),
-        ("CG-D01-PE07", "CG-D01-PE07/01", now),
-        ("D03", "S03-D03-PE01", now), ("D03", "S03-D03-PE02", now), ("D03", "S03-D03-PE03", now),
-        ("S03-D03-PE01", "21300015", now), ("S03-D03-PE01", "21300095", now), ("S03-D03-PE01", "21300071", now),
-        ("S03-D03-PE01", "S03-D03-PE06", now),
-        ("S03-D03-PE06", "21300055", now), ("S03-D03-PE06", "21300038", now),
-        ("S03-D03-PE06", "S03-D03-PE07", now),
-        ("S03-D03-PE07", "21300052", now),
-        ("S03-D03-PE02", "21100002", now), ("S03-D03-PE02", "21100007", now),
-        ("S03-D03-PE03", "21300005", now), ("S03-D03-PE03", "S03-D03-PE03/1", now),
-        ("S03-D03-PE03/1", "21100001", now), ("S03-D03-PE03/1", "21100008", now),
-        ("S03-D03-PE03/1", "S03-D03-PE04", now),
-        ("D02", "S02-D02-PE01", now), ("D02", "S02-D02-PE02", now), ("D02", "S02-D02-PE06", now), ("D02", "S02-D02-PE08", now),
-        ("S02-D02-PE01", "D02-SR10", now), ("S02-D02-PE01", "D02-SR08", now), ("S02-D02-PE01", "31000015", now),
-        ("S02-D02-PE01", "S02-D02-PE04", now),
-        ("S02-D02-PE04", "31000002", now), ("S02-D02-PE04", "31000008", now),
-        ("S02-D02-PE02", "31000024", now),
-        ("S02-D02-PE06", "31000045", now),
-        ("S02-D02-PE08", "S02-D02-PE07", now),
-        ("S02-D02-PE07", "S02-D02-PE07/02", now),
-        ("CG-D01-PE05", "S03-D03-PE04", now),
-        ("S03-D03-PE04", "S02-D02-PE08", now)
+        ("D01", "CG-D01-PE01", now), ("CG-D01-PE01", "31000003", now),
+        ("D01", "CG-D01-PE02", now), ("D03", "S03-D03-PE01", now),
+        ("D02", "S02-D02-PE01", now), ("CG-D01-PE02", "S03-D03-PE01", now)
     ]
     cursor.executemany("INSERT OR REPLACE INTO pipelines VALUES (?,?,?)", default_pipelines)
 
@@ -147,16 +66,6 @@ def init_db():
             PRIMARY KEY (source_id, target_id)
         )
     """)
-    # Check if old schema without created_at exists
-    cursor.execute("PRAGMA table_info(assets)")
-    cols = [r[1] for r in cursor.fetchall()]
-    if "created_at" not in cols:
-        cursor.execute("DROP TABLE IF EXISTS assets")
-        cursor.execute("DROP TABLE IF EXISTS pipelines")
-        conn.commit()
-        init_db()
-        return
-
     cursor.execute("SELECT COUNT(*) FROM assets")
     if cursor.fetchone()[0] == 0:
         seed_default_network(cursor)
@@ -165,7 +74,6 @@ def init_db():
 
 init_db()
 
-# Request Models
 class LoginReq(BaseModel):
     username: str
     password: str
@@ -280,12 +188,11 @@ def login_user(req: LoginReq):
 def get_snapshot():
     return build_response()
 
-# CREATE OR EDIT SINGLE ASSET
 @app.post("/api/asset/save")
 def save_asset(req: AssetSaveReq):
     asset_id = req.id.strip()
     if not asset_id:
-        return {"success": False, "message": "Asset ID tappanisari!"}
+        return {"success": False, "message": "Asset ID ivvali!"}
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     a_type = req.type.strip().upper()
@@ -304,63 +211,48 @@ def save_asset(req: AssetSaveReq):
         (id, name, type, tag, details, created_at, updated_at, status, location, pressure)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
-        asset_id,
-        req.name.strip() or asset_id,
-        a_type,
-        req.tag.strip() or "125 MM",
-        req.details.strip(),
-        created_at,
-        now,
-        req.status.strip().upper() or "ON",
-        req.location.strip(),
-        press
+        asset_id, req.name.strip() or asset_id, a_type,
+        req.tag.strip() or "125 MM", req.details.strip(),
+        created_at, now, req.status.strip().upper() or "ON",
+        req.location.strip(), press
     ))
 
     if req.parent_id and req.parent_id.strip() and req.parent_id.strip() != asset_id:
-        p_id = req.parent_id.strip()
-        cursor.execute("INSERT OR IGNORE INTO pipelines VALUES (?, ?, ?)", (p_id, asset_id, now))
+        cursor.execute("INSERT OR IGNORE INTO pipelines VALUES (?, ?, ?)", (req.parent_id.strip(), asset_id, now))
 
     conn.commit()
     conn.close()
-    action = "update" if existing else "create"
-    return build_response(f"Asset '{asset_id}' successfully {action} aindi!")
+    return build_response(f"Asset '{asset_id}' saved successfully!")
 
-# DELETE SINGLE ASSET
 @app.post("/api/asset/delete")
 def delete_asset(req: AssetDeleteReq):
-    asset_id = req.id.strip()
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM assets WHERE id = ?", (asset_id,))
-    cursor.execute("DELETE FROM pipelines WHERE source_id = ? OR target_id = ?", (asset_id, asset_id))
+    cursor.execute("DELETE FROM assets WHERE id = ?", (req.id.strip(),))
+    cursor.execute("DELETE FROM pipelines WHERE source_id = ? OR target_id = ?", (req.id.strip(), req.id.strip()))
     conn.commit()
     conn.close()
-    return build_response(f"Asset '{asset_id}' mariyu dani links delete ayyayi!")
+    return build_response("Asset deleted successfully!")
 
-# ADD MANUAL LINK
 @app.post("/api/pipeline/add")
 def add_pipeline(req: PipelineReq):
-    src, tgt = req.source_id.strip(), req.target_id.strip()
-    if not src or not tgt or src == tgt:
-        return {"success": False, "message": "Verveeru valid Assets select cheyandi!"}
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("INSERT OR IGNORE INTO pipelines VALUES (?, ?, ?)", (src, tgt, now))
+    cursor.execute("INSERT OR IGNORE INTO pipelines VALUES (?, ?, ?)", (req.source_id.strip(), req.target_id.strip(), now))
     conn.commit()
     conn.close()
-    return build_response(f"Link '{src}' -> '{tgt}' add aindi!")
+    return build_response("Link added successfully!")
 
-# DELETE MANUAL LINK
 @app.post("/api/pipeline/delete")
 def delete_pipeline(req: PipelineReq):
-    src, tgt = req.source_id.strip(), req.target_id.strip()
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM pipelines WHERE (source_id=? AND target_id=?) OR (source_id=? AND target_id=?)", (src, tgt, tgt, src))
+    cursor.execute("DELETE FROM pipelines WHERE (source_id=? AND target_id=?) OR (source_id=? AND target_id=?)", 
+                   (req.source_id.strip(), req.target_id.strip(), req.target_id.strip(), req.source_id.strip()))
     conn.commit()
     conn.close()
-    return build_response(f"Link '{src}' <-> '{tgt}' delete aindi!")
+    return build_response("Link removed successfully!")
 
 @app.post("/api/toggle")
 def toggle_asset(req: ToggleReq):
@@ -387,7 +279,7 @@ def reset_all():
     cursor.execute("UPDATE assets SET status = 'ON'")
     conn.commit()
     conn.close()
-    return build_response("Anni valves ON cheyabaddayi!")
+    return build_response("All valves reset to ON!")
 
 @app.post("/api/load-default")
 def load_default():
@@ -398,22 +290,14 @@ def load_default():
     seed_default_network(cursor)
     conn.commit()
     conn.close()
-    return build_response("Default BGL Network load aindi!")
+    return build_response("Default network loaded!")
 
-# EXCEL IMPORT
 @app.post("/api/upload-excel")
 async def upload_excel(file: UploadFile = File(...)):
-    filename = file.filename.lower()
-    if not (filename.endswith(".xlsx") or filename.endswith(".xlsm")):
-        return {"success": False, "message": "Kevalam .xlsx file mathrame upload cheyandi!"}
-
     contents = await file.read()
-    try:
-        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
-    except Exception as e:
-        return {"success": False, "message": f"Excel error: {str(e)}"}
-
+    wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
     now = datetime.now().strftime("%Y-%m-%d")
+
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM assets")
@@ -431,20 +315,15 @@ async def upload_excel(file: UploadFile = File(...)):
     if assets_sheet:
         headers = [str(c.value or "").strip() for c in assets_sheet[1]]
         col_map = {name: idx for idx, name in enumerate(headers) if name}
-
-        rows_to_insert = []
+        rows = []
         for row in assets_sheet.iter_rows(min_row=2, values_only=True):
-            if not row or len(row) == 0:
+            if not row or not row[col_map.get("Asset ID", 0)]:
                 continue
-            aid = str(row[col_map.get("Asset ID", 0)] or "").strip()
-            if not aid or aid == "None":
-                continue
+            aid = str(row[col_map.get("Asset ID", 0)]).strip()
             name = str(row[col_map.get("Asset Name", 1)] or aid).strip()
             atype = str(row[col_map.get("Type", 2)] or "VALVE").strip().upper()
             tag = str(row[col_map.get("Tag", 3)] or "125 MM").strip()
             details = str(row[col_map.get("Details", 4)] or "").strip()
-            c_at = str(row[col_map.get("Created At", 5)] or now).strip()
-            u_at = str(row[col_map.get("Updated At", 6)] or now).strip()
             status = str(row[col_map.get("Status", 7)] or "ON").strip().upper()
             loc = str(row[col_map.get("Location", 8)] or "").strip() if len(row) > 8 else ""
 
@@ -454,10 +333,9 @@ async def upload_excel(file: UploadFile = File(...)):
                     press = float("".join(ch for ch in details if ch.isdigit() or ch == "."))
                 except:
                     pass
-            rows_to_insert.append((aid, name, atype, tag, details, c_at, u_at, status, loc, press))
-
-        cursor.executemany("INSERT OR REPLACE INTO assets VALUES (?,?,?,?,?,?,?,?,?,?)", rows_to_insert)
-        asset_count = len(rows_to_insert)
+            rows.append((aid, name, atype, tag, details, now, now, status, loc, press))
+        cursor.executemany("INSERT OR REPLACE INTO assets VALUES (?,?,?,?,?,?,?,?,?,?)", rows)
+        asset_count = len(rows)
 
     links_sheet = None
     for s in wb.sheetnames:
@@ -471,57 +349,43 @@ async def upload_excel(file: UploadFile = File(...)):
         col_map = {name: idx for idx, name in enumerate(headers) if name}
         p_idx = col_map.get("Parent ID", 0)
         c_idx = col_map.get("Child ID", 1)
-
-        links_to_insert = []
+        links = []
         for row in links_sheet.iter_rows(min_row=2, values_only=True):
             if not row or len(row) < 2:
                 continue
-            src = str(row[p_idx] or "").strip()
-            tgt = str(row[c_idx] or "").strip()
-            if src and tgt and src != "None" and tgt != "None" and src != tgt:
-                links_to_insert.append((src, tgt, now))
-
-        cursor.executemany("INSERT OR IGNORE INTO pipelines VALUES (?,?,?)", links_to_insert)
-        link_count = len(links_to_insert)
+            src, tgt = str(row[p_idx] or "").strip(), str(row[c_idx] or "").strip()
+            if src and tgt and src != tgt:
+                links.append((src, tgt, now))
+        cursor.executemany("INSERT OR IGNORE INTO pipelines VALUES (?,?,?)", links)
+        link_count = len(links)
 
     conn.commit()
     conn.close()
-    return build_response(f"Excel Import Success: {asset_count} Assets & {link_count} Links!")
+    return build_response(f"Excel Imported: {asset_count} Assets, {link_count} Links!")
 
-# EXCEL EXPORT
 @app.get("/api/export-excel")
 def export_excel():
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM assets")
-    assets_rows = cursor.fetchall()
+    ar = cursor.fetchall()
     cursor.execute("SELECT * FROM pipelines")
-    links_rows = cursor.fetchall()
+    lr = cursor.fetchall()
     conn.close()
 
     wb = openpyxl.Workbook()
     ws_a = wb.active
     ws_a.title = "Assets"
     ws_a.append(["Asset ID", "Asset Name", "Type", "Tag", "Details", "Created At", "Updated At", "Status", "Location"])
-
-    for r in assets_rows:
-        ws_a.append([
-            r["id"], r["name"], r["type"], r["tag"], r["details"],
-            r["created_at"], r["updated_at"], r["status"], r["location"]
-        ])
+    for r in ar:
+        ws_a.append([r["id"], r["name"], r["type"], r["tag"], r["details"], r["created_at"], r["updated_at"], r["status"], r["location"]])
 
     ws_l = wb.create_sheet(title="Links")
     ws_l.append(["Parent ID", "Child ID", "Created At"])
-    for r in links_rows:
+    for r in lr:
         ws_l.append([r["source_id"], r["target_id"], r["created_at"]])
 
     stream = io.BytesIO()
     wb.save(stream)
     stream.seek(0)
-
-    headers = {"Content-Disposition": "attachment; filename=BGL_SCADA_Data.xlsx"}
-    return StreamingResponse(
-        stream,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers=headers
-    )
+    return StreamingResponse(stream, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=BGL_SCADA_Data.xlsx"})

@@ -6,23 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg-page: #f1f5f9;
-      --font-body: 'Inter', sans-serif;
-      --font-tech: 'Chakra Petch', sans-serif;
-    }
+    :root { --bg-page: #f1f5f9; --font-body: 'Inter', sans-serif; --font-tech: 'Chakra Petch', sans-serif; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg-page); font-family: var(--font-body); color: #0f172a; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
 
-    /* LOGIN OVERLAY */
-    .login-overlay {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
-      display: flex; justify-content: center; align-items: center; z-index: 9999;
-    }
-    .login-card {
-      background: #ffffff; width: 360px; padding: 26px; border-radius: 14px;
-      border-top: 5px solid #0284c7; box-shadow: 0 20px 35px rgba(0,0,0,0.3); text-align: center;
-    }
+    .login-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+    .login-card { background: #ffffff; width: 360px; padding: 26px; border-radius: 14px; border-top: 5px solid #0284c7; box-shadow: 0 20px 35px rgba(0,0,0,0.3); text-align: center; }
     .login-card h2 { font-size: 1.25rem; color: #0c4a6e; font-weight: 800; margin-bottom: 4px; }
     .login-card p { font-size: 0.78rem; color: #64748b; margin-bottom: 16px; }
     .login-field { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; }
@@ -30,12 +19,7 @@
     .login-btn:hover { background: #0369a1; }
     .login-hint { margin-top: 12px; font-size: 0.72rem; color: #475569; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px dashed #cbd5e1; }
 
-    /* HEADER */
-    header.bgl-header {
-      background: linear-gradient(180deg, #99cbf7 0%, #bce0fd 35%, #eff7fe 100%);
-      border-bottom: 3px solid #0284c7; padding: 10px 18px;
-      display: flex; justify-content: space-between; align-items: center; min-height: 74px;
-    }
+    header.bgl-header { background: linear-gradient(180deg, #99cbf7 0%, #bce0fd 35%, #eff7fe 100%); border-bottom: 3px solid #0284c7; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; min-height: 74px; }
     .brand-area { display: flex; align-items: center; gap: 12px; }
     .bgl-logo-img { width: 48px; height: 48px; border-radius: 50%; background: #fff; padding: 2px; border: 2px solid #22c55e; }
     .brand-text h1 { font-size: 1.2rem; font-weight: 800; color: #0c4a6e; }
@@ -46,15 +30,8 @@
     .role-user { background: #e0f2fe; color: #0369a1; border: 1.5px solid #7dd3fc; }
     .logout-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid #ef4444; background: #fff1f2; color: #be123c; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 
-    /* ADMIN TOOLBAR */
-    .admin-bar {
-      background: #ffffff; border-bottom: 1.5px solid #cbd5e1; padding: 8px 16px;
-      display: none; gap: 10px; flex-wrap: wrap; align-items: center;
-    }
-    .adm-btn {
-      padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;
-      border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
-    }
+    .admin-bar { background: #ffffff; border-bottom: 1.5px solid #cbd5e1; padding: 8px 16px; display: none; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .adm-btn { padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
     .btn-blue { background: #0284c7; color: #fff; }
     .btn-purple { background: #7c3aed; color: #fff; }
     .btn-green { background: #16a34a; color: #fff; }
@@ -63,11 +40,7 @@
     .link-box { display: flex; align-items: center; gap: 6px; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #cbd5e1; }
     .link-select { padding: 4px 6px; font-size: 0.72rem; border-radius: 4px; border: 1px solid #cbd5e1; max-width: 150px; }
 
-    /* KPI BAR */
-    .overview-kpi-bar {
-      background: #ffffff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 16px;
-      display: flex; align-items: center; gap: 8px; overflow-x: auto;
-    }
+    .overview-kpi-bar { background: #ffffff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 16px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
     .kpi-card { border-radius: 8px; padding: 4px 12px; min-width: 74px; text-align: center; }
     .kpi-card .num { font-family: var(--font-tech); font-size: 1.05rem; font-weight: 800; }
     .kpi-card .lbl { font-size: 0.62rem; font-weight: 700; }
@@ -77,20 +50,14 @@
     .kpi-ipng { background: #fffbeb; border: 1.5px solid #fde68a; color: #b45309; }
     .kpi-cpng { background: #fff1f2; border: 1.5px solid #fecdd3; color: #be123c; }
 
-    /* MAIN VIEWPORT */
     .main-wrapper { flex: 1; padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
     .overview-card { background: #fff; border: 1px solid #d8e8f5; border-radius: 12px; padding: 12px; }
-    .scada-viewport {
-      position: relative; background: #ffffff; border: 1.5px solid #cbd5e1;
-      border-radius: 10px; width: 100%; height: 740px; overflow: hidden;
-      cursor: grab; touch-action: none; user-select: none;
-    }
+    .scada-viewport { position: relative; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; width: 100%; height: 740px; overflow: hidden; cursor: grab; touch-action: none; user-select: none; }
     .scada-viewport:active { cursor: grabbing; }
     .zoom-toolbar { display: flex; align-items: center; gap: 5px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 3px 8px; }
     .zoom-btn { background: #fff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 3px 8px; font-size: 0.72rem; font-weight: 800; cursor: pointer; }
     .zoom-btn:hover { background: #e0f2fe; color: #0284c7; }
 
-    /* SVG PIPES & NODES */
     svg path { fill: none !important; }
     @keyframes flowAnim { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
     .pipe-active { stroke: #f59e0b; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
@@ -99,15 +66,8 @@
     .pid-valve-node { cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
     .pid-valve-node:hover { filter: brightness(1.08) drop-shadow(0 3px 6px rgba(0,0,0,0.2)); }
 
-    /* MODALS */
-    .modal-bg {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65);
-      display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px;
-    }
-    .modal-box {
-      background: #fff; border-radius: 12px; width: 100%; max-width: 500px;
-      padding: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;
-    }
+    .modal-bg { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px; }
+    .modal-box { background: #fff; border-radius: 12px; width: 100%; max-width: 500px; padding: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
     .modal-box.wide { max-width: 920px; }
     .modal-hdr { display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px; }
     .modal-hdr h3 { font-size: 1.05rem; color: #0c4a6e; font-weight: 800; }
@@ -126,23 +86,18 @@
 </head>
 <body>
 
-  <!-- 1. LOGIN MODAL -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" style="width:60px;height:60px;margin-bottom:8px;">
       <h2>BGL SCADA Login</h2>
       <p>Industrial P&ID Gas Network Control</p>
-      <input type="text" id="loginUser" class="login-field" placeholder="Username (admin / user)" value="admin">
+      <input type="text" id="loginUser" class="login-field" placeholder="Username" value="admin">
       <input type="password" id="loginPass" class="login-field" placeholder="Password" value="admin123">
       <button class="login-btn" onclick="performLogin()">🔐 Sign In</button>
-      <div class="login-hint">
-        <b>Admin:</b> admin / admin123<br>
-        <b>User:</b> user / user123
-      </div>
+      <div class="login-hint"><b>Admin:</b> admin / admin123<br><b>User:</b> user / user123</div>
     </div>
   </div>
 
-  <!-- 2. HEADER -->
   <header class="bgl-header">
     <div class="brand-area">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" alt="BGL">
@@ -157,11 +112,9 @@
     </div>
   </header>
 
-  <!-- 3. ADMIN CONTROL BAR -->
   <div class="admin-bar" id="adminBar">
     <button class="adm-btn btn-blue" onclick="openAssetModal()">➕ Create Asset</button>
     <button class="adm-btn btn-purple" onclick="openManagerModal()">📋 Manage Assets</button>
-
     <div class="link-box">
       <span style="font-size:0.72rem;font-weight:800;color:#0369a1;">🔗 Link:</span>
       <select id="linkSource" class="link-select"></select>
@@ -170,14 +123,12 @@
       <button class="adm-btn btn-blue" style="padding:4px 8px;" onclick="submitLinkPipeline(false)">Add Link</button>
       <button class="adm-btn btn-slate" style="padding:4px 8px;color:#b91c1c;" onclick="submitLinkPipeline(true)">Unlink</button>
     </div>
-
     <input type="file" id="excelFileInput" accept=".xlsx,.xlsm" style="display:none;" onchange="handleExcelUpload(event)">
     <button class="adm-btn btn-green" onclick="document.getElementById('excelFileInput').click()">📥 Import Excel</button>
     <button class="adm-btn btn-amber" onclick="window.location.href='/api/export-excel'">📤 Export Excel</button>
     <button class="adm-btn btn-slate" onclick="loadDefaultData()">🔄 Restore Default</button>
   </div>
 
-  <!-- 4. KPI BAR -->
   <div class="overview-kpi-bar">
     <div style="font-size:0.85rem; font-weight:800; margin-right:8px;">🌳 Network Overview:</div>
     <div class="kpi-card kpi-drs"><div class="num" id="kpiDrs">0</div><div class="lbl">DRS Stations</div></div>
@@ -187,7 +138,6 @@
     <div class="kpi-card kpi-cpng"><div class="num" id="kpiCpng">0</div><div class="lbl">CPNG</div></div>
   </div>
 
-  <!-- 5. MAIN VIEWPORT -->
   <div class="main-wrapper">
     <div class="overview-card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -211,26 +161,19 @@
     </div>
   </div>
 
-  <!-- MODAL A -->
   <div class="modal-bg" id="assetModal">
     <div class="modal-box">
-      <div class="modal-hdr">
-        <h3 id="assetModalTitle">➕ Create / Edit Asset</h3>
-        <button class="close-x" onclick="closeAssetModal()">✕</button>
-      </div>
+      <div class="modal-hdr"><h3 id="assetModalTitle">➕ Create / Edit Asset</h3><button class="close-x" onclick="closeAssetModal()">✕</button></div>
       <div class="form-grid">
-        <div class="form-grp"><label>Asset ID *</label><input type="text" id="fAssetId" placeholder="e.g. CG-D01-PE08"></div>
+        <div class="form-grp"><label>Asset ID *</label><input type="text" id="fAssetId" placeholder="ID"></div>
         <div class="form-grp"><label>Asset Name *</label><input type="text" id="fAssetName" placeholder="Name"></div>
         <div class="form-grp"><label>Type *</label>
-          <select id="fAssetType">
-            <option value="VALVE">VALVE</option><option value="IPNG">IPNG</option>
-            <option value="CPNG">CPNG</option><option value="SR">SR</option><option value="DRS">DRS</option>
-          </select>
+          <select id="fAssetType"><option value="VALVE">VALVE</option><option value="IPNG">IPNG</option><option value="CPNG">CPNG</option><option value="SR">SR</option><option value="DRS">DRS</option></select>
         </div>
         <div class="form-grp"><label>Tag / Size</label><input type="text" id="fAssetTag" value="125 MM"></div>
         <div class="form-grp"><label>Status</label><select id="fAssetStatus"><option value="ON">ON</option><option value="OFF">OFF</option></select></div>
         <div class="form-grp"><label>Pressure (Bar)</label><input type="number" step="0.1" id="fAssetPress" value="0.0"></div>
-        <div class="form-grp"><label>Location</label><input type="text" id="fAssetLoc" placeholder="Location"></div>
+        <div class="form-grp"><label>Location / GPS</label><input type="text" id="fAssetLoc" placeholder="e.g. Shamirpet or 17.3850,78.4867"></div>
         <div class="form-grp"><label>Parent Link</label><select id="fAssetParent"><option value="">-- None --</option></select></div>
         <div class="form-grp" style="grid-column: span 2;"><label>Details</label><input type="text" id="fAssetDetails" placeholder="Details"></div>
       </div>
@@ -241,13 +184,9 @@
     </div>
   </div>
 
-  <!-- MODAL B -->
   <div class="modal-bg" id="managerModal">
     <div class="modal-box wide">
-      <div class="modal-hdr">
-        <h3>📋 Asset Database Manager</h3>
-        <button class="close-x" onclick="closeManagerModal()">✕</button>
-      </div>
+      <div class="modal-hdr"><h3>📋 Asset Database Manager</h3><button class="close-x" onclick="closeManagerModal()">✕</button></div>
       <div style="display:flex; gap:10px; margin-bottom:10px;">
         <input type="text" id="searchAssetInput" placeholder="🔍 Search Asset..." style="flex:1; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;" oninput="renderAssetTable()">
         <button class="adm-btn btn-blue" onclick="closeManagerModal(); openAssetModal();">+ Add New</button>
@@ -270,46 +209,18 @@
     async function performLogin() {
       var u = document.getElementById('loginUser').value.trim();
       var p = document.getElementById('loginPass').value.trim();
-      try {
-        const res = await fetch('/api/login', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ username: u, password: p })
-        });
-        const data = await res.json();
-        if (data.success) {
-          currentUserRole = data.role;
-          localStorage.setItem('bgl_role', data.role);
-          applyRoleUI();
-          document.getElementById('loginOverlay').style.display = 'none';
-        } else {
-          alert(data.message || "Login failed!");
-        }
-      } catch(e) {
-        alert("Server connection error: " + e.message);
-      }
+      const res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: u, password: p }) });
+      const data = await res.json();
+      if (data.success) { currentUserRole = data.role; localStorage.setItem('bgl_role', data.role); applyRoleUI(); document.getElementById('loginOverlay').style.display = 'none'; }
+      else alert(data.message);
     }
 
-    function logoutUser() {
-      currentUserRole = null;
-      localStorage.removeItem('bgl_role');
-      document.getElementById('loginOverlay').style.display = 'flex';
-    }
+    function logoutUser() { currentUserRole = null; localStorage.removeItem('bgl_role'); document.getElementById('loginOverlay').style.display = 'flex'; }
 
     function applyRoleUI() {
-      var badge = document.getElementById('roleBadge');
-      var adminBar = document.getElementById('adminBar');
-      var resetBtn = document.getElementById('resetAllBtn');
-      if (currentUserRole === 'admin') {
-        badge.innerText = '👑 Admin Mode';
-        badge.className = 'role-badge role-admin';
-        adminBar.style.display = 'flex';
-        resetBtn.style.display = 'inline-block';
-      } else {
-        badge.innerText = '👁️ User View';
-        badge.className = 'role-badge role-user';
-        adminBar.style.display = 'none';
-        resetBtn.style.display = 'none';
-      }
+      var badge = document.getElementById('roleBadge'), adminBar = document.getElementById('adminBar'), resetBtn = document.getElementById('resetAllBtn');
+      if (currentUserRole === 'admin') { badge.innerText = '👑 Admin Mode'; badge.className = 'role-badge role-admin'; adminBar.style.display = 'flex'; resetBtn.style.display = 'inline-block'; }
+      else { badge.innerText = '👁️ User View'; badge.className = 'role-badge role-user'; adminBar.style.display = 'none'; resetBtn.style.display = 'none'; }
       renderPAndID();
     }
 
@@ -331,34 +242,21 @@
 
     function setupViewportControls() {
       var vp = document.getElementById('viewport');
-      vp.onmousedown = function(e) {
-        if (e.target.closest('.pid-valve-node') || e.target.closest('button')) return;
-        isDragging = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
-      };
-      window.onmousemove = function(e) {
-        if (!isDragging) return;
-        panX = e.clientX - startMouseX; panY = e.clientY - startMouseY;
-        changeZoom(0);
-      };
+      vp.onmousedown = function(e) { if (e.target.closest('.pid-valve-node') || e.target.closest('button') || e.target.closest('a')) return; isDragging = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY; };
+      window.onmousemove = function(e) { if (!isDragging) return; panX = e.clientX - startMouseX; panY = e.clientY - startMouseY; changeZoom(0); };
       window.onmouseup = function() { isDragging = false; };
     }
 
     async function fetchLiveSnapshot() {
-      try {
-        const res = await fetch('/api/snapshot');
-        scadaData = await res.json();
-        refreshUI();
-      } catch(e) {
-        console.error("Snapshot error:", e);
-      }
+      const res = await fetch('/api/snapshot');
+      scadaData = await res.json();
+      refreshUI();
     }
 
     function refreshUI() {
       if (!scadaData || !scadaData.assets) return;
       document.getElementById('statusText').innerText = "⚡ SCADA Active (" + Object.keys(scadaData.assets).length + " Assets, " + (scadaData.pipelines ? scadaData.pipelines.length : 0) + " Links)";
-      updateKPIs();
-      updateDropdowns();
-      renderPAndID();
+      updateKPIs(); updateDropdowns(); renderPAndID();
     }
 
     function updateKPIs() {
@@ -392,8 +290,7 @@
       if (editId && scadaData.assets[editId]) {
         var a = scadaData.assets[editId];
         document.getElementById('assetModalTitle').innerText = '✏️ Edit Asset: ' + editId;
-        document.getElementById('fAssetId').value = a.id;
-        document.getElementById('fAssetId').readOnly = true;
+        document.getElementById('fAssetId').value = a.id; document.getElementById('fAssetId').readOnly = true;
         document.getElementById('fAssetName').value = a.name || '';
         document.getElementById('fAssetType').value = (a.type || 'VALVE').toUpperCase();
         document.getElementById('fAssetTag').value = a.tag || '125 MM';
@@ -403,161 +300,112 @@
         document.getElementById('fAssetDetails').value = a.details || '';
       } else {
         document.getElementById('assetModalTitle').innerText = '➕ Create New Asset';
-        document.getElementById('fAssetId').value = '';
-        document.getElementById('fAssetId').readOnly = false;
-        document.getElementById('fAssetName').value = '';
-        document.getElementById('fAssetType').value = 'VALVE';
-        document.getElementById('fAssetTag').value = '125 MM';
-        document.getElementById('fAssetStatus').value = 'ON';
-        document.getElementById('fAssetPress').value = 0.0;
-        document.getElementById('fAssetLoc').value = '';
-        document.getElementById('fAssetDetails').value = '';
+        document.getElementById('fAssetId').value = ''; document.getElementById('fAssetId').readOnly = false;
+        document.getElementById('fAssetName').value = ''; document.getElementById('fAssetType').value = 'VALVE';
+        document.getElementById('fAssetTag').value = '125 MM'; document.getElementById('fAssetStatus').value = 'ON';
+        document.getElementById('fAssetPress').value = 0.0; document.getElementById('fAssetLoc').value = ''; document.getElementById('fAssetDetails').value = '';
       }
     }
-
     function closeAssetModal() { document.getElementById('assetModal').style.display = 'none'; }
 
     async function saveSingleAsset() {
       var payload = {
-        id: document.getElementById('fAssetId').value.trim(),
-        name: document.getElementById('fAssetName').value.trim(),
-        type: document.getElementById('fAssetType').value,
-        tag: document.getElementById('fAssetTag').value.trim(),
-        status: document.getElementById('fAssetStatus').value,
-        pressure: parseFloat(document.getElementById('fAssetPress').value) || 0.0,
-        location: document.getElementById('fAssetLoc').value.trim(),
-        details: document.getElementById('fAssetDetails').value.trim(),
+        id: document.getElementById('fAssetId').value.trim(), name: document.getElementById('fAssetName').value.trim(),
+        type: document.getElementById('fAssetType').value, tag: document.getElementById('fAssetTag').value.trim(),
+        status: document.getElementById('fAssetStatus').value, pressure: parseFloat(document.getElementById('fAssetPress').value) || 0.0,
+        location: document.getElementById('fAssetLoc').value.trim(), details: document.getElementById('fAssetDetails').value.trim(),
         parent_id: document.getElementById('fAssetParent').value
       };
       if (!payload.id) { alert("Asset ID ivvali!"); return; }
-      const res = await fetch('/api/asset/save', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
-      });
+      const res = await fetch('/api/asset/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
       const data = await res.json();
-      if (data.success) {
-        scadaData = data;
-        closeAssetModal();
-        refreshUI();
-        if (document.getElementById('managerModal').style.display === 'flex') renderAssetTable();
-      } else alert(data.message);
+      if (data.success) { scadaData = data; closeAssetModal(); refreshUI(); if (document.getElementById('managerModal').style.display === 'flex') renderAssetTable(); }
+      else alert(data.message);
     }
 
     async function deleteSingleAsset(id) {
       if (!confirm("Asset '" + id + "' ni delete cheyala?")) return;
-      const res = await fetch('/api/asset/delete', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id })
-      });
-      scadaData = await res.json();
-      refreshUI();
-      renderAssetTable();
+      const res = await fetch('/api/asset/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id }) });
+      scadaData = await res.json(); refreshUI(); renderAssetTable();
     }
 
-    function openManagerModal() {
-      document.getElementById('managerModal').style.display = 'flex';
-      renderAssetTable();
-    }
+    function openManagerModal() { document.getElementById('managerModal').style.display = 'flex'; renderAssetTable(); }
     function closeManagerModal() { document.getElementById('managerModal').style.display = 'none'; }
 
     function renderAssetTable() {
       var q = (document.getElementById('searchAssetInput').value || '').toLowerCase();
-      var rows = Object.values(scadaData.assets).filter(a =>
-        a.id.toLowerCase().includes(q) || (a.name || '').toLowerCase().includes(q) ||
-        (a.type || '').toLowerCase().includes(q) || (a.location || '').toLowerCase().includes(q)
-      );
+      var rows = Object.values(scadaData.assets).filter(a => a.id.toLowerCase().includes(q) || (a.name || '').toLowerCase().includes(q) || (a.type || '').toLowerCase().includes(q) || (a.location || '').toLowerCase().includes(q));
       document.getElementById('assetTableBody').innerHTML = rows.map(a => `
-        <tr>
-          <td><b>${a.id}</b></td>
-          <td>${a.name || ''}</td>
-          <td>${a.type || ''}</td>
-          <td>${a.tag || ''}</td>
-          <td style="color:${a.status==='ON'?'#16a34a':'#ef4444'};font-weight:800;">${a.status}</td>
-          <td>${a.location || ''}</td>
-          <td>
-            <button class="act-btn act-edit" onclick="openAssetModal('${a.id}')">✏️ Edit</button>
-            <button class="act-btn act-del" onclick="deleteSingleAsset('${a.id}')">🗑️ Delete</button>
-          </td>
-        </tr>
+        <tr><td><b>${a.id}</b></td><td>${a.name || ''}</td><td>${a.type || ''}</td><td>${a.tag || ''}</td><td style="color:${a.status==='ON'?'#16a34a':'#ef4444'};font-weight:800;">${a.status}</td><td>${a.location || ''}</td><td><button class="act-btn act-edit" onclick="openAssetModal('${a.id}')">✏️ Edit</button><button class="act-btn act-del" onclick="deleteSingleAsset('${a.id}')">🗑️ Delete</button></td></tr>
       `).join('');
     }
 
     async function submitLinkPipeline(isDelete) {
-      var src = document.getElementById('linkSource').value;
-      var tgt = document.getElementById('linkTarget').value;
-      var url = isDelete ? '/api/pipeline/delete' : '/api/pipeline/add';
-      const res = await fetch(url, {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source_id: src, target_id: tgt })
-      });
-      const data = await res.json();
-      alert(data.message);
+      var src = document.getElementById('linkSource').value, tgt = document.getElementById('linkTarget').value;
+      const res = await fetch(isDelete ? '/api/pipeline/delete' : '/api/pipeline/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source_id: src, target_id: tgt }) });
+      const data = await res.json(); alert(data.message);
       if (data.success) { scadaData = data; refreshUI(); }
     }
 
     async function handleExcelUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const fd = new FormData();
-      fd.append('file', file);
+      const file = event.target.files[0]; if (!file) return;
+      const fd = new FormData(); fd.append('file', file);
       const res = await fetch('/api/upload-excel', { method: 'POST', body: fd });
-      const data = await res.json();
-      alert(data.message);
+      const data = await res.json(); alert(data.message);
       if (data.success) { scadaData = data; refreshUI(); }
       event.target.value = '';
     }
 
     async function loadDefaultData() {
-      if (!confirm("Default BGL Network load cheyala?")) return;
+      if (!confirm("Default network load cheyala?")) return;
       const res = await fetch('/api/load-default', { method: 'POST' });
-      scadaData = await res.json();
-      refreshUI();
+      scadaData = await res.json(); refreshUI();
     }
 
     async function toggleAsset(id, curStatus) {
       if (currentUserRole !== 'admin') { alert("Admin access required!"); return; }
-      const next = curStatus === 'ON' ? 'OFF' : 'ON';
-      const res = await fetch('/api/toggle', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: next })
-      });
-      scadaData = await res.json();
-      refreshUI();
+      const res = await fetch('/api/toggle', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: curStatus === 'ON' ? 'OFF' : 'ON' }) });
+      scadaData = await res.json(); refreshUI();
     }
 
     async function promptPressure(drsId, curP) {
       if (currentUserRole !== 'admin') return;
       var n = prompt("Enter new pressure for " + drsId + " (Bar):", curP);
       if (n !== null && !isNaN(parseFloat(n))) {
-        const res = await fetch('/api/pressure', {
-          method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ drs_id: drsId, pressure: parseFloat(n) })
-        });
-        scadaData = await res.json();
-        refreshUI();
+        const res = await fetch('/api/pressure', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ drs_id: drsId, pressure: parseFloat(n) }) });
+        scadaData = await res.json(); refreshUI();
       }
     }
 
     async function triggerReset() {
       if (currentUserRole !== 'admin') return;
       const res = await fetch('/api/reset', { method: 'POST' });
-      scadaData = await res.json();
-      refreshUI();
+      scadaData = await res.json(); refreshUI();
     }
 
     function renderPipe(d, active) {
-      var s = '<path d="' + d + '" class="' + (active ? 'pipe-active' : 'pipe-inactive') + '"/>';
-      if (active) s += '<path d="' + d + '" class="pipe-active-pulse"/>';
-      return s;
+      return `<path d="${d}" class="${active ? 'pipe-active' : 'pipe-inactive'}"/>` + (active ? `<path d="${d}" class="pipe-active-pulse"/>` : '');
+    }
+
+    function openMap(loc) {
+      if (!loc) { alert("Location set cheyaledu!"); return; }
+      window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc), '_blank');
     }
 
     function renderDRSBox(x, y, id, A, S) {
       var d = A[id]; if (!d) return '';
       var isOn = d.status === 'ON';
+      var locText = d.location ? `📍 ${d.location}` : '📍 Set Location';
       return `<g>
-        <rect x="${x-125}" y="${y-5}" width="250" height="50" rx="14" fill="#fffbeb" stroke="${isOn?'#f59e0b':'#ef4444'}" stroke-width="2.8"/>
-        <text x="${x-110}" y="${y+18}" font-family="var(--font-tech)" font-weight="800" font-size="14" fill="#92400e" onclick="promptPressure('${id}',${d.pressure||4})" style="cursor:pointer;">⚡ ${id} ${d.name}</text>
-        <text x="${x-110}" y="${y+35}" font-family="var(--font-tech)" font-weight="700" font-size="11.5" fill="#b45309" onclick="promptPressure('${id}',${d.pressure||4})" style="cursor:pointer;">[${d.pressure||4} Bar] ✏️ Set</text>
+        <rect x="${x-125}" y="${y-5}" width="250" height="68" rx="14" fill="#fffbeb" stroke="${isOn?'#f59e0b':'#ef4444'}" stroke-width="2.8"/>
+        <text x="${x-110}" y="${y+16}" font-family="var(--font-tech)" font-weight="800" font-size="14" fill="#92400e" onclick="promptPressure('${id}',${d.pressure||4})" style="cursor:pointer;">⚡ ${id} ${d.name}</text>
+        <text x="${x-110}" y="${y+33}" font-family="var(--font-tech)" font-weight="700" font-size="11" fill="#b45309" onclick="promptPressure('${id}',${d.pressure||4})" style="cursor:pointer;">[${d.pressure||4} Bar] ✏️ Set</text>
+        <text x="${x-110}" y="${y+52}" font-size="10.5" font-weight="700" fill="#0284c7" onclick="openMap('${d.location}')" style="cursor:pointer;text-decoration:underline;">${locText}</text>
         <g class="pid-valve-node" onclick="toggleAsset('${id}','${d.status}')">
-          <rect x="${x+48}" y="${y+13}" width="64" height="26" rx="13" fill="${isOn?'#16a34a':'#ef4444'}"/>
-          <text x="${x+80}" y="${y+30}" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ${d.status}</text>
+          <rect x="${x+48}" y="${y+10}" width="64" height="26" rx="13" fill="${isOn?'#16a34a':'#ef4444'}"/>
+          <text x="${x+80}" y="${y+27}" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ${d.status}</text>
         </g>
-        ${renderPipe(`M \${x} ${y+45} L${x} 95`, isOn)}
+        ${renderPipe(`M \${x} ${y+63} L${x} 95`, isOn)}
       </g>`;
     }
 
@@ -566,14 +414,16 @@
       var isOn = v.status === 'ON', hasGas = S[id], src = F[id];
       var stroke = isOn ? (hasGas ? '#10b981' : '#f59e0b') : '#ef4444';
       var disp = id.replace(/^(CG|S\d+)-/, '');
+      var locStr = v.location ? `<text x="${x-69}" y="${y+26}" font-size="9.5" fill="#0284c7" onclick="openMap('${v.location}')" style="cursor:pointer;text-decoration:underline;">📍 ${v.location}</text>` : '';
       return `<g class="pid-valve-node" onclick="toggleAsset('${id}','${v.status}')">
-        <rect x="${x-105}" y="${y-23}" width="210" height="46" rx="23" fill="#fff" stroke="${stroke}" stroke-width="2.8"/>
-        <circle cx="${x-85}" cy="${y}" r="9" fill="${stroke}"/>
-        <text x="${x-69}" y="${y-2}" font-family="var(--font-tech)" font-size="13" font-weight="800" fill="#0f172a">${disp}</text>
-        <text x="${x-69}" y="${y+13}" font-size="10.5" font-weight="700" fill="#64748b">${v.tag||'125 MM'}</text>
-        <rect x="${x+41}" y="${y-12}" width="56" height="25" rx="12" fill="${isOn?'#16a34a':'#ef4444'}"/>
-        <text x="${x+69}" y="${y+5}" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ${v.status}</text>
-        ${hasGas && src ? `<text x="${x}" y="${y+33}" text-anchor="middle" font-family="var(--font-tech)" font-size="9.5" font-weight="800" fill="#b45309">⚡ Fed by ${src.id} (${src.pressure} Bar)</text>` : ''}
+        <rect x="${x-105}" y="${y-25}" width="210" height="58" rx="20" fill="#fff" stroke="${stroke}" stroke-width="2.8"/>
+        <circle cx="${x-85}" cy="${y-5}" r="9" fill="${stroke}"/>
+        <text x="${x-69}" y="${y-7}" font-family="var(--font-tech)" font-size="13" font-weight="800" fill="#0f172a">${disp}</text>
+        <text x="${x-69}" y="${y+9}" font-size="10" font-weight="700" fill="#64748b">${v.tag||'125 MM'}</text>
+        ${locStr}
+        <rect x="${x+41}" y="${y-14}" width="56" height="25" rx="12" fill="${isOn?'#16a34a':'#ef4444'}"/>
+        <text x="${x+69}" y="${y+3}" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ${v.status}</text>
+        ${hasGas && src ? `<text x="${x}" y="${y+43}" text-anchor="middle" font-family="var(--font-tech)" font-size="9.5" font-weight="800" fill="#b45309">⚡ Fed by ${src.id} (${src.pressure} Bar)</text>` : ''}
       </g>`;
     }
 
@@ -585,14 +435,16 @@
       else if (t.includes('CPNG')) { bdr = '#f97316'; bg = '#fff7ed'; sym = '🏨'; }
       var endX = side === 'left' ? px - 55 : px + 55;
       var cx = side === 'left' ? endX - 260 : endX;
-      var nm = (c.name || id).slice(0, 24);
+      var nm = (c.name || id).slice(0, 22);
+      var locTag = c.location ? `<text x="${cx+10}" y="${ty+35}" font-size="10" fill="#0284c7" onclick="openMap('${c.location}')" style="cursor:pointer;text-decoration:underline;">📍 ${c.location}</text>` : '';
       return renderPipe(`M ${px} ${ty} L ${endX} ${ty}`, on) +
         `<circle cx="${px}" cy="${ty}" r="4.5" fill="#f59e0b"/>
-        <g onclick="if(currentUserRole==='admin') openAssetModal('${id}')" style="cursor:pointer;">
-          <rect x="${cx}" y="${ty-27}" width="260" height="54" rx="8" fill="${on?bg:'#f8fafc'}" stroke="${on?bdr:'#cbd5e1'}" stroke-width="2"/>
-          <text x="${cx+10}" y="${ty-9}" font-family="var(--font-tech)" font-size="13" font-weight="800" fill="${on?'#0f172a':'#64748b'}">${sym} ${nm}</text>
-          <text x="${cx+10}" y="${ty+6}" font-family="var(--font-tech)" font-size="11" font-weight="700" fill="#0284c7">No: ${c.id} • ${c.tag||'40'}</text>
-          <text x="${cx+10}" y="${ty+20}" font-size="11" font-weight="800" fill="${on?'#16a34a':'#ef4444'}">● ${on?'GAS ON':'GAS OFF'}</text>
+        <g>
+          <rect x="${cx}" y="${ty-27}" width="260" height="70" rx="8" fill="${on?bg:'#f8fafc'}" stroke="${on?bdr:'#cbd5e1'}" stroke-width="2"/>
+          <text x="${cx+10}" y="${ty-10}" font-family="var(--font-tech)" font-size="13" font-weight="800" fill="${on?'#0f172a':'#64748b'}">${sym} ${nm}</text>
+          <text x="${cx+10}" y="${ty+5}" font-family="var(--font-tech)" font-size="10.5" font-weight="700" fill="#0284c7">No: ${c.id} • ${c.tag||'40'}</text>
+          ${locTag}
+          <text x="${cx+180}" y="${ty+35}" font-size="10.5" font-weight="800" fill="${on?'#16a34a':'#ef4444'}">● ${on?'ON':'OFF'}</text>
         </g>`;
     }
 
@@ -605,55 +457,37 @@
     function renderPAndID() {
       if (!scadaData || !scadaData.assets) return;
       var A = scadaData.assets, S = scadaData.supply, F = scadaData.fed_by;
-      var svg = `<svg id="mainScadaSvg" viewBox="0 0 8800 1300" width="8800px" height="1300px" style="background:#fff;">
+
+      // Dynamic Multi-DRS Header Placement
+      var drsNodes = Object.values(A).filter(a => (a.type||'').toUpperCase() === 'DRS');
+      var svgW = Math.max(8800, drsNodes.length * 2500);
+      var svg = `<svg id="mainScadaSvg" viewBox="0 0 ${svgW} 1400" width="${svgW}px" height="1400px" style="background:#fff;">
         <g id="panZoomGroup" transform="translate(${panX},${panY}) scale(${currentZoom})">`;
 
-      svg += renderDRSBox(1650, 25, 'D01', A, S) + renderPipe('M 250 95 L 3050 95', S['D01']);
-      svg += renderDRSBox(4600, 25, 'D03', A, S) + renderPipe('M 3900 95 L 5300 95', S['D03']);
-      svg += renderDRSBox(7200, 25, 'D02', A, S) + renderPipe('M 6150 95 L 8250 95', S['D02']);
+      // Render all DRS stations dynamically from database
+      var drsX = 1650;
+      drsNodes.forEach((drs, idx) => {
+        svg += renderDRSBox(drsX, 25, drs.id, A, S);
+        svg += renderPipe(`M ${drsX-1400} 95 L ${drsX+1400} 95`, S[drs.id]);
+        drsX += 2800;
+      });
 
+      // Standard Sub-networks & Lines
       svg += renderBadge(250, '⚡ Direct Spurs', S['D01']) + renderPipe('M 250 175 L 250 355', S['D01']);
-      [['D01-DIR-01',175],['D01-DIR-02',235],['D01-DIR-03',295],['D01-DIR-04',355]].forEach(r => svg += renderCard(250, r[1], r[0], 'left', A, S));
+      [['D01-DIR-01',175],['D01-DIR-02',235],['D01-DIR-03',295],['D01-DIR-04',355]].forEach(r => { if(A[r[0]]) svg += renderCard(250, r[1], r[0], 'left', A, S); });
 
       var cols = [
         [950, '⚡ LINE 1', 'D01', [['CG-D01-PE01', 175, 245, [['31000003', 245, 'right']]]]],
-        [1650, '⚡ LINE 2', 'D01', [
-          ['CG-D01-PE02', 175, 295, [['CG-D01-SR03', 230, 'right']]],
-          ['CG-D01-PE02/01', 295, 415, []],
-          ['CG-D01-PE02/02', 415, 555, [['CG-D01-SR01', 470, 'right']]],
-          ['CG-D01-PE02/03', 555, 610, [['CG-D01-SR07', 610, 'right']]]
-        ]],
-        [2350, '⚡ LINE 3', 'D01', [
-          ['CG-D01-PE03', 175, 275, []], ['CG-D01-PE04', 275, 385, []],
-          ['CG-D01-PE04/01', 385, 495, []], ['CG-D01-PE04/02', 495, 605, []],
-          ['CG-D01-PE04/03', 605, 660, [['21300007', 660, 'right']]]
-        ]],
-        [3050, '⚡ LINE 4', 'D01', [
-          ['CG-D01-PE05', 435, 545, []],
-          ['CG-D01-PE05/01', 545, 655, [['21300016', 600, 'left']]],
-          ['CG-D01-PE06', 655, 755, []], ['CG-D01-PE07', 755, 845, []],
-          ['CG-D01-PE07/01', 845, 845, []]
-        ]],
-        [3900, '⚡ LINE 1', 'D03', [
-          ['S03-D03-PE01', 175, 335, [['21300095', 235, 'left'], ['21300071', 235, 'right']]],
-          ['S03-D03-PE06', 335, 495, [['21300055', 395, 'left'], ['21300038', 395, 'right']]],
-          ['S03-D03-PE07', 495, 555, [['21300052', 555, 'left']]]
-        ]],
+        [1650, '⚡ LINE 2', 'D01', [['CG-D01-PE02', 175, 295, [['CG-D01-SR03', 230, 'right']]], ['CG-D01-PE02/01', 295, 415, []], ['CG-D01-PE02/02', 415, 555, [['CG-D01-SR01', 470, 'right']]], ['CG-D01-PE02/03', 555, 610, [['CG-D01-SR07', 610, 'right']]]]],
+        [2350, '⚡ LINE 3', 'D01', [['CG-D01-PE03', 175, 275, []], ['CG-D01-PE04', 275, 385, []], ['CG-D01-PE04/01', 385, 495, []], ['CG-D01-PE04/02', 495, 605, []], ['CG-D01-PE04/03', 605, 660, [['21300007', 660, 'right']]]]],
+        [3050, '⚡ LINE 4', 'D01', [['CG-D01-PE05', 435, 545, []], ['CG-D01-PE05/01', 545, 655, [['21300016', 600, 'left']]], ['CG-D01-PE06', 655, 755, []], ['CG-D01-PE07', 755, 845, []], ['CG-D01-PE07/01', 845, 845, []]]],
+        [3900, '⚡ LINE 1', 'D03', [['S03-D03-PE01', 175, 335, [['21300095', 235, 'left'], ['21300071', 235, 'right']]], ['S03-D03-PE06', 335, 495, [['21300055', 395, 'left'], ['21300038', 395, 'right']]], ['S03-D03-PE07', 495, 555, [['21300052', 555, 'left']]]]],
         [4600, '⚡ LINE 2', 'D03', [['S03-D03-PE02', 175, 235, [['21100002', 235, 'left'], ['21100007', 235, 'right']]]]],
-        [5300, '⚡ LINE 3', 'D03', [
-          ['S03-D03-PE03', 175, 335, [['21300005', 235, 'left']]],
-          ['S03-D03-PE03/1', 335, 495, [['21100001', 395, 'left'], ['21100008', 395, 'right']]],
-          ['S03-D03-PE04', 495, 495, []]
-        ]],
-        [6150, '⚡ LINE 1', 'D02', [
-          ['S02-D02-PE01', 175, 355, [['D02-SR10', 235, 'left'], ['31000015', 235, 'right']]],
-          ['S02-D02-PE04', 355, 415, [['31000002', 415, 'left'], ['31000008', 415, 'right']]]
-        ]],
+        [5300, '⚡ LINE 3', 'D03', [['S03-D03-PE03', 175, 335, [['21300005', 235, 'left']]], ['S03-D03-PE03/1', 335, 495, [['21100001', 395, 'left'], ['21100008', 395, 'right']]], ['S03-D03-PE04', 495, 495, []]]],
+        [6150, '⚡ LINE 1', 'D02', [['S02-D02-PE01', 175, 355, [['D02-SR10', 235, 'left'], ['31000015', 235, 'right']]], ['S02-D02-PE04', 355, 415, [['31000002', 415, 'left'], ['31000008', 415, 'right']]]]],
         [6850, '⚡ LINE 2', 'D02', [['S02-D02-PE02', 175, 235, [['31000024', 235, 'left']]]]],
         [7550, '⚡ LINE 3', 'D02', [['S02-D02-PE06', 175, 235, [['31000045', 235, 'left']]]]],
-        [8250, '⚡ LINE 4', 'D02', [
-          ['S02-D02-PE08', 175, 295, []], ['S02-D02-PE07', 295, 415, []], ['S02-D02-PE07/02', 415, 415, []]
-        ]]
+        [8250, '⚡ LINE 4', 'D02', [['S02-D02-PE08', 175, 295, []], ['S02-D02-PE07', 295, 415, []], ['S02-D02-PE07/02', 415, 415, []]]]
       ];
 
       var renderedIds = new Set(['D01','D02','D03','D01-DIR-01','D01-DIR-02','D01-DIR-03','D01-DIR-04']);
@@ -667,41 +501,3 @@
             var vLive = S[vid] && A[vid].status === 'ON';
             if (ny > vy) svg += renderPipe(`M ${x} ${vy+23} L ${x} ${ny}`, vLive);
             svg += renderValve(x, vy, vid, A, S, F);
-          }
-          cList.forEach(c => { renderedIds.add(c[0]); svg += renderCard(x, c[1], c[0], c[2], A, S); });
-        });
-      });
-
-      svg += renderPipe('M 2455 385 L 3050 385 L 3050 435', S['CG-D01-PE04/01'] && S['CG-D01-PE05']);
-      var tie1 = S['CG-D01-PE05'] && A['CG-D01-PE05']?.status==='ON' && S['S03-D03-PE04'] && A['S03-D03-PE04']?.status==='ON';
-      var tie2 = S['S03-D03-PE04'] && A['S03-D03-PE04']?.status==='ON' && S['S02-D02-PE08'] && A['S02-D02-PE08']?.status==='ON';
-      svg += renderPipe('M 3155 435 L 3400 435 L 3400 960 L 5550 960 L 5550 495 L 5405 495', tie1);
-      svg += renderPipe('M 5550 960 L 5550 1040 L 8500 1040 L 8500 175 L 8355 175', tie2);
-
-      var customX = 450, customY = 1140;
-      Object.keys(A).forEach(id => {
-        if (!renderedIds.has(id) && customX < 8400) {
-          var a = A[id];
-          if ((a.type||'').includes('VALVE')) svg += renderValve(customX, customY, id, A, S, F);
-          else svg += renderCard(customX, customY, id, 'right', A, S);
-          customX += 420;
-        }
-      });
-
-      svg += '</g></svg>';
-      document.getElementById('viewport').innerHTML = svg;
-    }
-
-    window.onload = function() {
-      setupViewportControls();
-      var savedRole = localStorage.getItem('bgl_role');
-      if (savedRole) {
-        currentUserRole = savedRole;
-        document.getElementById('loginOverlay').style.display = 'none';
-        applyRoleUI();
-      }
-      fetchLiveSnapshot();
-    };
-  </script>
-</body>
-</html>
