@@ -2,214 +2,184 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BGL Gas Network Control - Industrial P&ID SCADA (FastAPI Powered)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=3.0, user-scalable=yes">
+  <title>BGL Gas Network Control - Industrial P&ID SCADA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-page: #f1f5f9;
-      --pipe-yellow: #f59e0b;
-      --pipe-gray: #cbd5e1;
-      --gas-green: #10b981;
-      --gas-red: #ef4444;
-      --bgl-blue: #0284c7;
-      --text-dark: #0f172a;
-      --text-muted: #64748b;
       --font-body: 'Inter', sans-serif;
       --font-tech: 'Chakra Petch', sans-serif;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg-page);
-      font-family: var(--font-body);
-      color: var(--text-dark);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
-    }
+    body { background: var(--bg-page); font-family: var(--font-body); color: #0f172a; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
 
+    /* LOGIN OVERLAY */
+    .login-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(5px);
+      display: flex; justify-content: center; align-items: center; z-index: 9999;
+    }
+    .login-card {
+      background: #ffffff; width: 360px; padding: 26px; border-radius: 14px;
+      border-top: 5px solid #0284c7; box-shadow: 0 20px 35px rgba(0,0,0,0.3); text-align: center;
+    }
+    .login-card h2 { font-size: 1.25rem; color: #0c4a6e; font-weight: 800; margin-bottom: 4px; }
+    .login-card p { font-size: 0.78rem; color: #64748b; margin-bottom: 16px; }
+    .login-field { width: 100%; padding: 9px 12px; margin-bottom: 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; }
+    .login-btn { width: 100%; padding: 10px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.9rem; }
+    .login-btn:hover { background: #0369a1; }
+    .login-hint { margin-top: 12px; font-size: 0.72rem; color: #475569; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px dashed #cbd5e1; }
+
+    /* HEADER */
     header.bgl-header {
-      background: linear-gradient(180deg, #99cbf7 0%, #bce0fd 30%, #d8effe 65%, #eff7fe 100%);
-      border-bottom: 3px solid #0284c7;
-      padding: 10px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      min-height: 75px;
-      box-shadow: 0 2px 10px rgba(0, 130, 200, 0.15);
+      background: linear-gradient(180deg, #99cbf7 0%, #bce0fd 35%, #eff7fe 100%);
+      border-bottom: 3px solid #0284c7; padding: 10px 18px;
+      display: flex; justify-content: space-between; align-items: center; min-height: 74px;
     }
-
     .brand-area { display: flex; align-items: center; gap: 12px; }
-    .bgl-logo-img {
-      width: 50px; height: 50px; object-fit: contain;
-      border-radius: 50%; background: #ffffff; padding: 2px;
-      border: 2px solid #22c55e; flex-shrink: 0;
-    }
-    .brand-text h1 { font-size: 1.2rem; font-weight: 800; color: #0c4a6e; line-height: 1.15; }
+    .bgl-logo-img { width: 48px; height: 48px; border-radius: 50%; background: #fff; padding: 2px; border: 2px solid #22c55e; }
+    .brand-text h1 { font-size: 1.2rem; font-weight: 800; color: #0c4a6e; }
     .brand-text p { font-size: 0.74rem; color: #0284c7; font-weight: 600; }
+    .user-area { display: flex; align-items: center; gap: 10px; }
+    .role-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+    .role-admin { background: #dcfce7; color: #166534; border: 1.5px solid #86efac; }
+    .role-user { background: #e0f2fe; color: #0369a1; border: 1.5px solid #7dd3fc; }
+    .logout-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid #ef4444; background: #fff1f2; color: #be123c; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 
-    /* Builder Panels Bar */
-    .builder-bar {
-      background: #ffffff;
-      border-bottom: 1.5px solid #cbd5e1;
-      padding: 8px 14px;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    /* ADMIN TOOLBAR */
+    .admin-bar {
+      background: #ffffff; border-bottom: 1.5px solid #cbd5e1; padding: 8px 16px;
+      display: none; gap: 10px; flex-wrap: wrap; align-items: center;
     }
-    .builder-box {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: #f8fafc;
-      padding: 5px 10px;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
+    .adm-btn {
+      padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;
+      border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
     }
-    .builder-box label { font-size: 0.72rem; font-weight: 800; color: #0369a1; white-space: nowrap; }
-    .builder-input, .builder-select {
-      font-size: 0.72rem;
-      padding: 4px 6px;
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      font-family: inherit;
-    }
-    .builder-btn {
-      background: #0284c7;
-      color: #ffffff;
-      border: none;
-      padding: 5px 10px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      border-radius: 5px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      white-space: nowrap;
-      transition: background 0.15s;
-    }
-    .builder-btn:hover { background: #0369a1; }
-    .excel-upload-btn { background: #16a34a; }
-    .excel-upload-btn:hover { background: #15803d; }
-    .link-btn { background: #8b5cf6; }
-    .link-btn:hover { background: #7c3aed; }
+    .btn-blue { background: #0284c7; color: #fff; }
+    .btn-purple { background: #7c3aed; color: #fff; }
+    .btn-green { background: #16a34a; color: #fff; }
+    .btn-amber { background: #d97706; color: #fff; }
+    .btn-slate { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+    .link-box { display: flex; align-items: center; gap: 6px; background: #f8fafc; padding: 4px 10px; border-radius: 8px; border: 1px solid #cbd5e1; }
+    .link-select { padding: 4px 6px; font-size: 0.72rem; border-radius: 4px; border: 1px solid #cbd5e1; max-width: 150px; }
 
+    /* KPI BAR */
     .overview-kpi-bar {
-      background: #ffffff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 14px;
+      background: #ffffff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 16px;
       display: flex; align-items: center; gap: 8px; overflow-x: auto;
     }
-    .kpi-card {
-      border-radius: 8px; padding: 4px 10px; min-width: 70px; text-align: center;
-      display: flex; flex-direction: column; justify-content: center; flex-shrink: 0;
-    }
-    .kpi-card .num { font-family: var(--font-tech); font-size: 1.05rem; font-weight: 800; line-height: 1.1; }
-    .kpi-card .lbl { font-size: 0.62rem; font-weight: 700; margin-top: 1px; white-space: nowrap; }
+    .kpi-card { border-radius: 8px; padding: 4px 12px; min-width: 74px; text-align: center; }
+    .kpi-card .num { font-family: var(--font-tech); font-size: 1.05rem; font-weight: 800; }
+    .kpi-card .lbl { font-size: 0.62rem; font-weight: 700; }
     .kpi-drs { background: #eff6ff; border: 1.5px solid #bfdbfe; color: #1d4ed8; }
     .kpi-vc { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #15803d; }
     .kpi-sr { background: #faf5ff; border: 1.5px solid #e9d5ff; color: #7e22ce; }
     .kpi-ipng { background: #fffbeb; border: 1.5px solid #fde68a; color: #b45309; }
     .kpi-cpng { background: #fff1f2; border: 1.5px solid #fecdd3; color: #be123c; }
 
-    .main-wrapper { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 10px 14px; }
-    .overview-card { background: #fff; border: 1px solid #d8e8f5; border-radius: 12px; padding: 12px 14px; }
-
+    /* MAIN VIEWPORT */
+    .main-wrapper { flex: 1; padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .overview-card { background: #fff; border: 1px solid #d8e8f5; border-radius: 12px; padding: 12px; }
     .scada-viewport {
-      position: relative;
-      background: #ffffff;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 10px;
-      width: 100%;
-      height: 750px;
-      overflow: hidden;
-      cursor: grab;
-      touch-action: none !important;
-      user-select: none !important;
+      position: relative; background: #ffffff; border: 1.5px solid #cbd5e1;
+      border-radius: 10px; width: 100%; height: 740px; overflow: hidden;
+      cursor: grab; touch-action: none; user-select: none;
     }
     .scada-viewport:active { cursor: grabbing; }
+    .zoom-toolbar { display: flex; align-items: center; gap: 5px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 3px 8px; }
+    .zoom-btn { background: #fff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 3px 8px; font-size: 0.72rem; font-weight: 800; cursor: pointer; }
+    .zoom-btn:hover { background: #e0f2fe; color: #0284c7; }
 
-    svg#mainScadaSvg { display: block; max-width: none !important; }
-
-    .zoom-toolbar {
-      display: flex; align-items: center; gap: 5px; background: #f1f5f9;
-      border: 1px solid #cbd5e1; border-radius: 20px; padding: 3px 8px; flex-wrap: wrap;
-    }
-    .zoom-btn {
-      background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px;
-      padding: 3px 8px; font-size: 0.72rem; font-weight: 800; color: #0f172a; cursor: pointer;
-    }
-    .zoom-btn:hover { background: #e0f2fe; border-color: #0284c7; color: #0284c7; }
-    .zoom-level-text { font-size: 0.75rem; font-weight: 800; color: #0284c7; font-family: var(--font-tech); min-width: 42px; text-align: center; }
-
+    /* SVG PIPES & NODES */
     svg path { fill: none !important; }
-    @keyframes flowAnim {
-      from { stroke-dashoffset: 40; }
-      to { stroke-dashoffset: 0; }
-    }
-    .pipe-active { fill: none !important; stroke: #f59e0b; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
-    .pipe-active-pulse { fill: none !important; stroke: #ffffff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 8, 12; animation: flowAnim 1.2s linear infinite; }
-    .pipe-inactive { fill: none !important; stroke: #cbd5e1; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+    @keyframes flowAnim { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
+    .pipe-active { stroke: #f59e0b; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+    .pipe-active-pulse { stroke: #ffffff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 8, 12; animation: flowAnim 1.2s linear infinite; }
+    .pipe-inactive { stroke: #cbd5e1; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+    .pid-valve-node { cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+    .pid-valve-node:hover { filter: brightness(1.08) drop-shadow(0 3px 6px rgba(0,0,0,0.2)); }
 
-    .pid-valve-node {
-      cursor: pointer; pointer-events: all;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-      transition: filter 0.15s ease-in-out;
+    /* MODALS (ASSET CREATE/EDIT & TABLE MANAGER) */
+    .modal-bg {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65);
+      display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px;
     }
-    .pid-valve-node:hover { filter: brightness(1.12) drop-shadow(0 3px 8px rgba(0,0,0,0.25)); }
+    .modal-box {
+      background: #fff; border-radius: 12px; width: 100%; max-width: 500px;
+      padding: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto;
+    }
+    .modal-box.wide { max-width: 920px; }
+    .modal-hdr { display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px; }
+    .modal-hdr h3 { font-size: 1.05rem; color: #0c4a6e; font-weight: 800; }
+    .close-x { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b; font-weight: 800; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-grp { display: flex; flex-direction: column; gap: 4px; }
+    .form-grp label { font-size: 0.72rem; font-weight: 700; color: #334155; }
+    .form-grp input, .form-grp select { padding: 7px 9px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.8rem; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-top: 10px; }
+    .data-table th, .data-table td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; }
+    .data-table th { background: #f8fafc; font-weight: 800; color: #0f172a; position: sticky; top: 0; }
+    .act-btn { padding: 3px 7px; border-radius: 4px; border: none; font-size: 0.7rem; font-weight: 700; cursor: pointer; margin-right: 4px; }
+    .act-edit { background: #e0f2fe; color: #0369a1; }
+    .act-del { background: #fee2e2; color: #b91c1c; }
   </style>
 </head>
 <body>
 
-  <header class="bgl-header">
-    <div class="brand-area">
-      <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" alt="BGL Logo">
-      <div class="brand-text">
-        <h1>BGL Gas Network Control</h1>
-        <p>Industrial SCADA Engine (FastAPI Connected)</p>
+  <!-- 1. LOGIN MODAL -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" style="width:60px;height:60px;margin-bottom:8px;">
+      <h2>BGL SCADA Login</h2>
+      <p>Industrial P&ID Gas Network Control</p>
+      <input type="text" id="loginUser" class="login-field" placeholder="Username (admin / user)" value="admin">
+      <input type="password" id="loginPass" class="login-field" placeholder="Password" value="admin123">
+      <button class="login-btn" onclick="performLogin()">🔐 Sign In</button>
+      <div class="login-hint">
+        <b>Admin:</b> admin / admin123 (Full Edit & Excel Access)<br>
+        <b>User:</b> user / user123 (View Only Mode)
       </div>
-    </div>
-  </header>
-
-  <!-- ALL BUILDER CONTROLS IN TOP BAR -->
-  <div class="builder-bar">
-    <!-- 1. Excel Upload -->
-    <div class="builder-box" style="background:#f0fdf4; border:1.5px solid #86efac;">
-      <input type="file" id="excelFileInput" accept=".xlsx, .xlsm" style="display:none;" onchange="handleExcelUpload(event)">
-      <button class="builder-btn excel-upload-btn" onclick="document.getElementById('excelFileInput').click()">📁 Upload Excel Sheet</button>
-      <span id="uploadStatusText" style="font-size:0.72rem; font-weight:700; color:#15803d;"></span>
-    </div>
-
-    <!-- 2. Manual Link Assets (Parent -> Child) -->
-    <div class="builder-box" style="background:#f5f3ff; border:1.5px solid #c4b5fd;">
-      <label style="color:#6d28d9;">🔗 Manual Link:</label>
-      <select id="linkSource" class="builder-select" style="min-width:140px;"></select>
-      <span style="font-size:0.75rem; font-weight:bold; color:#6d28d9;">➔</span>
-      <select id="linkTarget" class="builder-select" style="min-width:140px;"></select>
-      <button class="builder-btn link-btn" onclick="submitLinkPipeline()">Link Assets</button>
-    </div>
-
-    <!-- 3. Add Single Asset -->
-    <div class="builder-box">
-      <label>➕ Add Asset:</label>
-      <input type="text" id="newAssetId" class="builder-input" placeholder="Asset ID" style="width:90px;">
-      <input type="text" id="newAssetName" class="builder-input" placeholder="Name" style="width:90px;">
-      <select id="newAssetType" class="builder-select">
-        <option value="VALVE">VALVE</option>
-        <option value="IPNG">IPNG</option>
-        <option value="CPNG">CPNG</option>
-        <option value="SR">SR</option>
-        <option value="DRS">DRS</option>
-      </select>
-      <button class="builder-btn" onclick="submitCreateAsset()">Add</button>
     </div>
   </div>
 
+  <!-- 2. HEADER -->
+  <header class="bgl-header">
+    <div class="brand-area">
+      <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" alt="BGL">
+      <div class="brand-text">
+        <h1>BGL Gas Network Control</h1>
+        <p>Industrial SCADA Engine (FastAPI + SQLite DB)</p>
+      </div>
+    </div>
+    <div class="user-area">
+      <span id="roleBadge" class="role-badge role-user">👤 Guest</span>
+      <button class="logout-btn" onclick="logoutUser()">Logout</button>
+    </div>
+  </header>
+
+  <!-- 3. ADMIN CONTROL BAR (Visible only to Admin) -->
+  <div class="admin-bar" id="adminBar">
+    <button class="adm-btn btn-blue" onclick="openAssetModal()">➕ Create Asset</button>
+    <button class="adm-btn btn-purple" onclick="openManagerModal()">📋 Manage Assets (Edit / Delete)</button>
+
+    <div class="link-box">
+      <span style="font-size:0.72rem;font-weight:800;color:#0369a1;">🔗 Link:</span>
+      <select id="linkSource" class="link-select"></select>
+      <span style="font-weight:800;">➔</span>
+      <select id="linkTarget" class="link-select"></select>
+      <button class="adm-btn btn-blue" style="padding:4px 8px;" onclick="submitLinkPipeline(false)">Add Link</button>
+      <button class="adm-btn btn-slate" style="padding:4px 8px;color:#b91c1c;" onclick="submitLinkPipeline(true)">Unlink</button>
+    </div>
+
+    <input type="file" id="excelFileInput" accept=".xlsx,.xlsm" style="display:none;" onchange="handleExcelUpload(event)">
+    <button class="adm-btn btn-green" onclick="document.getElementById('excelFileInput').click()">📥 Import Excel</button>
+    <button class="adm-btn btn-amber" onclick="window.location.href='/api/export-excel'">📤 Export Excel</button>
+    <button class="adm-btn btn-slate" onclick="loadDefaultData()">🔄 Restore Default Network</button>
+  </div>
+
+  <!-- 4. KPI BAR -->
   <div class="overview-kpi-bar">
-    <div style="font-size:0.85rem; font-weight:800; color:#0f172a; margin-right:8px;">🌳 Network Overview:</div>
+    <div style="font-size:0.85rem; font-weight:800; margin-right:8px;">🌳 Network Overview:</div>
     <div class="kpi-card kpi-drs"><div class="num" id="kpiDrs">0</div><div class="lbl">DRS Stations</div></div>
     <div class="kpi-card kpi-vc"><div class="num" id="kpiVc">0</div><div class="lbl">Valve Chambers</div></div>
     <div class="kpi-card kpi-sr"><div class="num" id="kpiSr">0</div><div class="lbl">SR</div></div>
@@ -217,6 +187,7 @@
     <div class="kpi-card kpi-cpng"><div class="num" id="kpiCpng">0</div><div class="lbl">CPNG</div></div>
   </div>
 
+  <!-- 5. MAIN P&ID SCHEMATIC -->
   <div class="main-wrapper">
     <div class="overview-card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -224,7 +195,7 @@
           <h2 style="font-size:1rem; font-weight:700;">📐 P&ID Schematic Multi-DRS Ring Grid</h2>
           <div class="zoom-toolbar">
             <button class="zoom-btn" onclick="changeZoom(-0.1)">➖</button>
-            <span class="zoom-level-text" id="zoomLevelText">100%</span>
+            <span id="zoomLevelText" style="font-size:0.75rem;font-weight:800;color:#0284c7;min-width:42px;text-align:center;">85%</span>
             <button class="zoom-btn" onclick="changeZoom(0.1)">➕</button>
             <button class="zoom-btn" onclick="focusStation('ALL')">🌐 Fit All</button>
             <button class="zoom-btn" onclick="focusStation('D01')">⚡ D01</button>
@@ -232,114 +203,202 @@
             <button class="zoom-btn" onclick="focusStation('D02')">⚡ D02</button>
           </div>
         </div>
-        
-        <button style="padding:5px 12px; font-size:0.75rem; font-weight:700; cursor:pointer; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff;" onclick="triggerReset()">🔄 Reset All ON</button>
+        <button id="resetAllBtn" style="padding:5px 12px; font-size:0.75rem; font-weight:700; cursor:pointer; border-radius:6px; border:1px solid #cbd5e1; background:#fff;" onclick="triggerReset()">🔄 Reset All ON</button>
       </div>
 
-      <div style="margin:10px 0; font-size:0.88rem; font-weight:700; color:#0284c7;" id="statusText">Live Python SCADA Engine Initializing...</div>
-      
-      <div class="scada-viewport" id="viewport">
-        <div style="padding:20px; text-align:center; color:#64748b;">Loading Real-Time Gas Flow from Python FastAPI...</div>
+      <div style="margin:8px 0; font-size:0.84rem; font-weight:700; color:#0284c7;" id="statusText">⚡ Initializing SCADA Engine...</div>
+      <div class="scada-viewport" id="viewport"></div>
+    </div>
+  </div>
+
+  <!-- MODAL A: CREATE / EDIT SINGLE ASSET -->
+  <div class="modal-bg" id="assetModal">
+    <div class="modal-box">
+      <div class="modal-hdr">
+        <h3 id="assetModalTitle">➕ Create / Edit Asset</h3>
+        <button class="close-x" onclick="closeAssetModal()">✕</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-grp">
+          <label>Asset ID *</label>
+          <input type="text" id="fAssetId" placeholder="e.g. CG-D01-PE08">
+        </div>
+        <div class="form-grp">
+          <label>Asset Name *</label>
+          <input type="text" id="fAssetName" placeholder="e.g. Shamirpet Valve 8">
+        </div>
+        <div class="form-grp">
+          <label>Type *</label>
+          <select id="fAssetType">
+            <option value="VALVE">VALVE (Valve Chamber)</option>
+            <option value="IPNG">IPNG (Industrial)</option>
+            <option value="CPNG">CPNG (Commercial)</option>
+            <option value="SR">SR (Domestic Regulator)</option>
+            <option value="DRS">DRS (Station)</option>
+          </select>
+        </div>
+        <div class="form-grp">
+          <label>Tag / Size</label>
+          <input type="text" id="fAssetTag" value="125 MM">
+        </div>
+        <div class="form-grp">
+          <label>Status</label>
+          <select id="fAssetStatus">
+            <option value="ON">ON</option>
+            <option value="OFF">OFF</option>
+          </select>
+        </div>
+        <div class="form-grp">
+          <label>Pressure (Bar - For DRS)</label>
+          <input type="number" step="0.1" id="fAssetPress" value="0.0">
+        </div>
+        <div class="form-grp">
+          <label>Location</label>
+          <input type="text" id="fAssetLoc" placeholder="Shamirpet / Medchal">
+        </div>
+        <div class="form-grp">
+          <label>Connect to Parent Asset (Optional)</label>
+          <select id="fAssetParent"><option value="">-- No Parent Link --</option></select>
+        </div>
+        <div class="form-grp" style="grid-column: span 2;">
+          <label>Details</label>
+          <input type="text" id="fAssetDetails" placeholder="Additional notes or pressure details">
+        </div>
+      </div>
+      <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:8px;">
+        <button class="adm-btn btn-slate" onclick="closeAssetModal()">Cancel</button>
+        <button class="adm-btn btn-blue" onclick="saveSingleAsset()">💾 Save Asset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL B: MANAGE ASSETS TABLE (SEARCH, EDIT, DELETE) -->
+  <div class="modal-bg" id="managerModal">
+    <div class="modal-box wide">
+      <div class="modal-hdr">
+        <h3>📋 Asset Database Manager (Edit / Delete)</h3>
+        <button class="close-x" onclick="closeManagerModal()">✕</button>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:10px;">
+        <input type="text" id="searchAssetInput" placeholder="🔍 Search by Asset ID, Name, Type, or Location..." style="flex:1; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;" oninput="renderAssetTable()">
+        <button class="adm-btn btn-blue" onclick="closeManagerModal(); openAssetModal();">+ Add New Asset</button>
+      </div>
+      <div style="max-height: 420px; overflow-y: auto; border:1px solid #e2e8f0; border-radius:6px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Asset ID</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Tag</th>
+              <th>Status</th>
+              <th>Location</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="assetTableBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
 
   <script>
+    var currentUserRole = null;
     var scadaData = null;
     var panX = 40, panY = 20, currentZoom = 0.85;
-    var isDragging = false;
-    var startMouseX = 0, startMouseY = 0;
+    var isDragging = false, startMouseX = 0, startMouseY = 0;
 
+    // --- 1. LOGIN & ROLE CONTROL ---
+    async function performLogin() {
+      var u = document.getElementById('loginUser').value;
+      var p = document.getElementById('loginPass').value;
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentUserRole = data.role;
+        localStorage.setItem('bgl_role', data.role);
+        applyRoleUI();
+        document.getElementById('loginOverlay').style.display = 'none';
+      } else {
+        alert(data.message);
+      }
+    }
+
+    function logoutUser() {
+      currentUserRole = null;
+      localStorage.removeItem('bgl_role');
+      document.getElementById('loginOverlay').style.display = 'flex';
+    }
+
+    function applyRoleUI() {
+      var badge = document.getElementById('roleBadge');
+      var adminBar = document.getElementById('adminBar');
+      var resetBtn = document.getElementById('resetAllBtn');
+      if (currentUserRole === 'admin') {
+        badge.innerText = '👑 Admin Mode';
+        badge.className = 'role-badge role-admin';
+        adminBar.style.display = 'flex';
+        resetBtn.style.display = 'inline-block';
+      } else {
+        badge.innerText = '👁️ User (View Only)';
+        badge.className = 'role-badge role-user';
+        adminBar.style.display = 'none';
+        resetBtn.style.display = 'none';
+      }
+      renderPAndID();
+    }
+
+    // --- 2. PAN & ZOOM ---
     function changeZoom(delta) {
       currentZoom = Math.min(Math.max(currentZoom + delta, 0.15), 2.5);
       document.getElementById('zoomLevelText').innerText = Math.round(currentZoom * 100) + '%';
-      applyTransform();
-    }
-
-    function applyTransform() {
       var g = document.getElementById('panZoomGroup');
       if (g) g.setAttribute('transform', 'translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')');
     }
 
     function focusStation(stn) {
-      var vp = document.getElementById('viewport');
-      var vpWidth = vp ? vp.clientWidth : 1200;
-      if (stn === 'ALL') {
-        currentZoom = Math.min(Math.max(vpWidth / 5400, 0.22), 0.5);
-        panX = 20; panY = 20;
-      } else if (stn === 'D01') {
-        currentZoom = 0.85; panX = 40; panY = 20;
-      } else if (stn === 'D03') {
-        currentZoom = 0.85; panX = -(2400 * currentZoom) + (vpWidth / 2); panY = 20;
-      } else if (stn === 'D02') {
-        currentZoom = 0.85; panX = -(4200 * currentZoom) + (vpWidth / 2); panY = 20;
-      }
-      document.getElementById('zoomLevelText').innerText = Math.round(currentZoom * 100) + '%';
-      applyTransform();
+      var vpWidth = document.getElementById('viewport').clientWidth || 1200;
+      if (stn === 'ALL') { currentZoom = 0.22; panX = 20; panY = 20; }
+      else if (stn === 'D01') { currentZoom = 0.85; panX = 40; panY = 20; }
+      else if (stn === 'D03') { currentZoom = 0.85; panX = -(2400 * currentZoom) + (vpWidth / 2); panY = 20; }
+      else if (stn === 'D02') { currentZoom = 0.85; panX = -(4200 * currentZoom) + (vpWidth / 2); panY = 20; }
+      changeZoom(0);
     }
 
     function setupViewportControls() {
       var vp = document.getElementById('viewport');
-      if (!vp) return;
-
       vp.onmousedown = function(e) {
         if (e.target.closest('.pid-valve-node') || e.target.closest('button')) return;
-        isDragging = true;
-        startMouseX = e.clientX - panX;
-        startMouseY = e.clientY - panY;
-        vp.style.cursor = 'grabbing';
+        isDragging = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
       };
       window.onmousemove = function(e) {
         if (!isDragging) return;
-        panX = e.clientX - startMouseX;
-        panY = e.clientY - startMouseY;
-        applyTransform();
+        panX = e.clientX - startMouseX; panY = e.clientY - startMouseY;
+        changeZoom(0);
       };
-      window.onmouseup = function() {
-        isDragging = false;
-        if (vp) vp.style.cursor = 'grab';
-      };
-
-      vp.addEventListener('touchstart', function(e) {
-        if (e.target.closest('.pid-valve-node') || e.target.closest('button')) return;
-        if (e.touches.length === 1) {
-          isDragging = true;
-          startMouseX = e.touches[0].clientX - panX;
-          startMouseY = e.touches[0].clientY - panY;
-        }
-      }, { passive: false });
-
-      vp.addEventListener('touchmove', function(e) {
-        if (e.touches.length === 1 && isDragging) {
-          e.preventDefault();
-          panX = e.touches[0].clientX - startMouseX;
-          panY = e.touches[0].clientY - startMouseY;
-          applyTransform();
-        }
-      }, { passive: false });
-
-      vp.addEventListener('touchend', function() { isDragging = false; });
+      window.onmouseup = function() { isDragging = false; };
     }
 
-    // UPDATE DROPDOWNS FOR MANUAL LINKING
-    function updateDropdownOptions() {
+    // --- 3. DATA SYNC & CRUD ---
+    async function fetchLiveSnapshot() {
+      const res = await fetch('/api/snapshot');
+      scadaData = await res.json();
+      refreshUI();
+    }
+
+    function refreshUI() {
       if (!scadaData || !scadaData.assets) return;
-      var srcSelect = document.getElementById('linkSource');
-      var tgtSelect = document.getElementById('linkTarget');
-      var ids = Object.keys(scadaData.assets).sort();
-
-      var optHtml = ids.map(function(id) {
-        var a = scadaData.assets[id];
-        return '<option value="' + id + '">' + id + ' (' + (a.type || 'VALVE') + ')</option>';
-      }).join('');
-
-      srcSelect.innerHTML = optHtml;
-      tgtSelect.innerHTML = optHtml;
-      if (ids.length > 1) tgtSelect.selectedIndex = 1;
+      document.getElementById('statusText').innerText = "⚡ Real-time Python Engine Active (" + Object.keys(scadaData.assets).length + " Assets, " + (scadaData.pipelines ? scadaData.pipelines.length : 0) + " Links)";
+      updateKPIs();
+      updateDropdowns();
+      renderPAndID();
     }
 
     function updateKPIs() {
-      if (!scadaData || !scadaData.assets) return;
       var drs = 0, vc = 0, sr = 0, ipng = 0, cpng = 0;
       Object.values(scadaData.assets).forEach(function(a) {
         var t = (a.type || '').toUpperCase();
@@ -356,470 +415,240 @@
       document.getElementById('kpiCpng').innerText = cpng;
     }
 
-    async function fetchLiveSnapshot() {
-      try {
-        const res = await fetch('/api/snapshot');
-        scadaData = await res.json();
-        document.getElementById('statusText').innerText = "⚡ Real-time Python Engine Active (Live Gas BFS Loop Engine)";
-        updateDropdownOptions();
-        updateKPIs();
-        renderPAndID();
-      } catch (err) {
-        document.getElementById('statusText').innerText = "⚠️ Backend error: " + err.message;
+    function updateDropdowns() {
+      var ids = Object.keys(scadaData.assets).sort();
+      var html = ids.map(id => '<option value="' + id + '">' + id + ' (' + scadaData.assets[id].type + ')</option>').join('');
+      document.getElementById('linkSource').innerHTML = html;
+      document.getElementById('linkTarget').innerHTML = html;
+      document.getElementById('fAssetParent').innerHTML = '<option value="">-- Optional Parent --</option>' + html;
+      if (ids.length > 1) document.getElementById('linkTarget').selectedIndex = 1;
+    }
+
+    // Single Asset Modal Functions
+    function openAssetModal(editId) {
+      document.getElementById('assetModal').style.display = 'flex';
+      if (editId && scadaData.assets[editId]) {
+        var a = scadaData.assets[editId];
+        document.getElementById('assetModalTitle').innerText = '✏️ Edit Asset: ' + editId;
+        document.getElementById('fAssetId').value = a.id;
+        document.getElementById('fAssetId').readOnly = true;
+        document.getElementById('fAssetName').value = a.name || '';
+        document.getElementById('fAssetType').value = (a.type || 'VALVE').toUpperCase();
+        document.getElementById('fAssetTag').value = a.tag || '125 MM';
+        document.getElementById('fAssetStatus').value = (a.status || 'ON').toUpperCase();
+        document.getElementById('fAssetPress').value = a.pressure || 0.0;
+        document.getElementById('fAssetLoc').value = a.location || '';
+        document.getElementById('fAssetDetails').value = a.details || '';
+      } else {
+        document.getElementById('assetModalTitle').innerText = '➕ Create New Asset';
+        document.getElementById('fAssetId').value = '';
+        document.getElementById('fAssetId').readOnly = false;
+        document.getElementById('fAssetName').value = '';
+        document.getElementById('fAssetType').value = 'VALVE';
+        document.getElementById('fAssetTag').value = '125 MM';
+        document.getElementById('fAssetStatus').value = 'ON';
+        document.getElementById('fAssetPress').value = 0.0;
+        document.getElementById('fAssetLoc').value = '';
+        document.getElementById('fAssetDetails').value = '';
       }
     }
 
-    // 1. DIRECT EXCEL FILE UPLOAD
+    function closeAssetModal() { document.getElementById('assetModal').style.display = 'none'; }
+
+    async function saveSingleAsset() {
+      var payload = {
+        id: document.getElementById('fAssetId').value.trim(),
+        name: document.getElementById('fAssetName').value.trim(),
+        type: document.getElementById('fAssetType').value,
+        tag: document.getElementById('fAssetTag').value.trim(),
+        status: document.getElementById('fAssetStatus').value,
+        pressure: parseFloat(document.getElementById('fAssetPress').value) || 0.0,
+        location: document.getElementById('fAssetLoc').value.trim(),
+        details: document.getElementById('fAssetDetails').value.trim(),
+        parent_id: document.getElementById('fAssetParent').value
+      };
+      if (!payload.id) { alert("Asset ID ivvali!"); return; }
+      const res = await fetch('/api/asset/save', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        scadaData = data;
+        closeAssetModal();
+        refreshUI();
+        if (document.getElementById('managerModal').style.display === 'flex') renderAssetTable();
+      } else alert(data.message);
+    }
+
+    async function deleteSingleAsset(id) {
+      if (!confirm("Asset '" + id + "' ni delete cheyala?")) return;
+      const res = await fetch('/api/asset/delete', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id })
+      });
+      scadaData = await res.json();
+      refreshUI();
+      renderAssetTable();
+    }
+
+    // Manager Table Modal
+    function openManagerModal() {
+      document.getElementById('managerModal').style.display = 'flex';
+      renderAssetTable();
+    }
+    function closeManagerModal() { document.getElementById('managerModal').style.display = 'none'; }
+
+    function renderAssetTable() {
+      var q = (document.getElementById('searchAssetInput').value || '').toLowerCase();
+      var rows = Object.values(scadaData.assets).filter(a =>
+        a.id.toLowerCase().includes(q) || (a.name || '').toLowerCase().includes(q) ||
+        (a.type || '').toLowerCase().includes(q) || (a.location || '').toLowerCase().includes(q)
+      );
+      document.getElementById('assetTableBody').innerHTML = rows.map(a => `
+        <tr>
+          <td><b>${a.id}</b></td>
+          <td>${a.name || ''}</td>
+          <td>${a.type || ''}</td>
+          <td>${a.tag || ''}</td>
+          <td style="color:${a.status==='ON'?'#16a34a':'#ef4444'};font-weight:800;">${a.status}</td>
+          <td>${a.location || ''}</td>
+          <td>
+            <button class="act-btn act-edit" onclick="openAssetModal('${a.id}')">✏️ Edit</button>
+            <button class="act-btn act-del" onclick="deleteSingleAsset('${a.id}')">🗑️ Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function submitLinkPipeline(isDelete) {
+      var src = document.getElementById('linkSource').value;
+      var tgt = document.getElementById('linkTarget').value;
+      var url = isDelete ? '/api/pipeline/delete' : '/api/pipeline/add';
+      const res = await fetch(url, {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source_id: src, target_id: tgt })
+      });
+      const data = await res.json();
+      alert(data.message);
+      if (data.success) { scadaData = data; refreshUI(); }
+    }
+
     async function handleExcelUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
-
-      const statusSpan = document.getElementById('uploadStatusText');
-      statusSpan.innerText = "⏳ Uploading & Importing...";
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        const res = await fetch('/api/upload-excel', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        if (data.success) {
-          statusSpan.innerText = "✅ Imported!";
-          alert("🎉 " + data.message);
-          scadaData = data;
-          updateDropdownOptions();
-          updateKPIs();
-          renderPAndID();
-        } else {
-          statusSpan.innerText = "❌ Failed";
-          alert("Error: " + data.message);
-        }
-      } catch (err) {
-        statusSpan.innerText = "❌ Error";
-        alert("Upload error: " + err.message);
-      } finally {
-        event.target.value = '';
-        setTimeout(() => { statusSpan.innerText = ''; }, 4500);
-      }
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload-excel', { method: 'POST', body: fd });
+      const data = await res.json();
+      alert(data.message);
+      if (data.success) { scadaData = data; refreshUI(); }
+      event.target.value = '';
     }
 
-    // 2. MANUAL LINK ASSETS (SUBMIT)
-    async function submitLinkPipeline() {
-      var src = document.getElementById('linkSource').value;
-      var tgt = document.getElementById('linkTarget').value;
-
-      if (!src || !tgt || src === tgt) {
-        alert("దయచేసి రెండు వేర్వేరు Assets ని ఎంచుకోండి!");
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/pipeline/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source_id: src, target_id: tgt })
-        });
-        const data = await res.json();
-        if (data.success) {
-          alert("✅ " + data.message);
-          scadaData = data;
-          renderPAndID();
-        } else {
-          alert("⚠️ " + data.message);
-        }
-      } catch (e) {
-        alert("Error: " + e.message);
-      }
+    async function loadDefaultData() {
+      if (!confirm("Default BGL Network load cheyala?")) return;
+      const res = await fetch('/api/load-default', { method: 'POST' });
+      scadaData = await res.json();
+      refreshUI();
     }
 
-    // 3. MANUAL CREATE ASSET
-    async function submitCreateAsset() {
-      var id = document.getElementById('newAssetId').value.trim();
-      var name = document.getElementById('newAssetName').value.trim();
-      var type = document.getElementById('newAssetType').value;
-
-      if (!id) {
-        alert("Asset ID తప్పనిసరి!");
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/asset/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: id, name: name || id, type: type, tag: '125 MM' })
-        });
-        const data = await res.json();
-        if (data.success) {
-          alert("✅ " + data.message);
-          scadaData = data;
-          document.getElementById('newAssetId').value = '';
-          document.getElementById('newAssetName').value = '';
-          updateDropdownOptions();
-          updateKPIs();
-          renderPAndID();
-        } else {
-          alert("⚠️ " + data.message);
-        }
-      } catch (e) {
-        alert("Error: " + e.message);
-      }
-    }
-
-    async function toggleAsset(id, currentStatus) {
-      const nextStatus = currentStatus === 'ON' ? 'OFF' : 'ON';
-      if (scadaData && scadaData.assets[id]) {
-        scadaData.assets[id].status = nextStatus;
-      }
-      try {
-        const res = await fetch('/api/toggle', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ asset_id: id, status: nextStatus })
-        });
-        scadaData = await res.json();
-        renderPAndID();
-      } catch (e) {
-        console.error("Sync error:", e);
-      }
+    async function toggleAsset(id, curStatus) {
+      if (currentUserRole !== 'admin') { alert("Kevalam Admin mathrame valves operate cheyagalaru!"); return; }
+      const next = curStatus === 'ON' ? 'OFF' : 'ON';
+      const res = await fetch('/api/toggle', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: next })
+      });
+      scadaData = await res.json();
+      refreshUI();
     }
 
     async function promptPressure(drsId, curP) {
-      var n = prompt("Enter new operating pressure for " + drsId + " (Bar):", curP);
+      if (currentUserRole !== 'admin') return;
+      var n = prompt("Enter new pressure for " + drsId + " (Bar):", curP);
       if (n !== null && !isNaN(parseFloat(n))) {
-        var pVal = parseFloat(n);
         const res = await fetch('/api/pressure', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ drs_id: drsId, pressure: pVal })
+          method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ drs_id: drsId, pressure: parseFloat(n) })
         });
         scadaData = await res.json();
-        renderPAndID();
+        refreshUI();
       }
     }
 
     async function triggerReset() {
+      if (currentUserRole !== 'admin') return;
       const res = await fetch('/api/reset', { method: 'POST' });
       scadaData = await res.json();
-      renderPAndID();
+      refreshUI();
     }
 
+    // --- 4. DATA-DRIVEN COMPACT P&ID RENDERER ---
     function renderPipe(d, active) {
-      var s = '<path d="' + d + '" class="' + (active ? 'pipe-active' : 'pipe-inactive') + '" pointer-events="none"/>';
-      if (active) s += '<path d="' + d + '" class="pipe-active-pulse" pointer-events="none"/>';
+      var s = '<path d="' + d + '" class="' + (active ? 'pipe-active' : 'pipe-inactive') + '"/>';
+      if (active) s += '<path d="' + d + '" class="pipe-active-pulse"/>';
       return s;
     }
 
-    function renderDRSBox(x, y, drsId, name, press, status) {
-      var isOnline = (status === 'ON');
-      var btnColor = isOnline ? '#16a34a' : '#ef4444';
-      var btnText = isOnline ? '● ON' : '● OFF';
-      return '<g>' +
-             '<rect x="' + (x - 125) + '" y="' + (y - 5) + '" width="250" height="50" rx="14" fill="#fffbeb" stroke="' + (isOnline ? '#f59e0b' : '#ef4444') + '" stroke-width="2.8"/>' +
-             '<text x="' + (x - 110) + '" y="' + (y + 18) + '" font-family="var(--font-tech)" font-weight="800" font-size="14.5" fill="#92400e" onclick="promptPressure(\'' + drsId + '\',' + press + ')" style="cursor:pointer;">⚡ ' + drsId + ' ' + name + '</text>' +
-             '<text x="' + (x - 110) + '" y="' + (y + 35) + '" font-family="var(--font-tech)" font-weight="700" font-size="11.5" fill="#b45309" onclick="promptPressure(\'' + drsId + '\',' + press + ')" style="cursor:pointer;">[' + press + ' Bar] ✏️ Set</text>' +
-             '<g class="pid-valve-node" onclick="toggleAsset(\'' + drsId + '\', \'' + status + '\')">' +
-             '<rect x="' + (x + 48) + '" y="' + (y + 13) + '" width="64" height="26" rx="13" fill="' + btnColor + '" pointer-events="all"/>' +
-             '<text x="' + (x + 80) + '" y="' + (y + 30) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#ffffff" pointer-events="none">' + btnText + '</text>' +
-             '</g>' +
-             renderPipe('M ' + x + ' ' + (y + 45) + ' L ' + x + ' 95', isOnline) +
-             '</g>';
+    function renderDRSBox(x, y, id, A, S) {
+      var d = A[id]; if (!d) return '';
+      var isOn = d.status === 'ON';
+      return `<g>
+        <rect x="${x-125}" y="${y-5}" width="250" height="50" rx="14" fill="#fffbeb" stroke="${isOn?'#f59e0b':'#ef4444'}" stroke-width="2.8"/>
+        <text x="${x-110}" y="${y+18}" font-family="var(--font-tech)" font-weight="800" font-size="14" fill="#92400e" onclick="promptPressure('${id}',${d.pressure||4})" style="cursor:pointer;">⚡ ${id} ${d.name}</text>
+        <text x="${x-110}" y="${y+35}" font-family="var(--font-tech)" font-weight="700" font-size="11.5" fill="#b45309" onclick="promptPressure('${id}',${d.pressure||4})" style="cursor:pointer;">[${d.pressure||4} Bar] ✏️ Set</text>
+        <g class="pid-valve-node" onclick="toggleAsset('${id}','${d.status}')">
+          <rect x="${x+48}" y="${y+13}" width="64" height="26" rx="13" fill="${isOn?'#16a34a':'#ef4444'}"/>
+          <text x="${x+80}" y="${y+30}" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ${d.status}</text>
+        </g>
+        ${renderPipe(`M \${x} ${y+45} L${x} 95`, isOn)}
+      </g>`;
     }
 
-    function renderValveCapsule(x, y, id, tag, status, hasGas, loopSource) {
-      var isManualOn = (status === 'ON');
-      var strokeColor = isManualOn ? (hasGas ? '#10b981' : '#f59e0b') : '#ef4444';
-      var btnColor = isManualOn ? '#16a34a' : '#ef4444';
-      var btnText = isManualOn ? '● ON' : '● OFF';
-      var dispId = id.replace(/^(CG|S\d+)-/, '').replace(/(D\d+)-PE(\d+)/, '$1-PE$2');
-
-      var out = '<g class="pid-valve-node" onclick="toggleAsset(\'' + id + '\', \'' + status + '\')">' +
-                '<rect x="' + (x - 105) + '" y="' + (y - 23) + '" width="210" height="46" rx="23" fill="#ffffff" stroke="' + strokeColor + '" stroke-width="2.8" pointer-events="all"/>' +
-                '<circle cx="' + (x - 85) + '" cy="' + y + '" r="9" fill="' + strokeColor + '" pointer-events="none"/>' +
-                '<text x="' + (x - 69) + '" y="' + (y - 2) + '" font-family="var(--font-tech)" font-size="13.5" font-weight="800" fill="#0f172a" pointer-events="none">' + dispId + '</text>' +
-                '<text x="' + (x - 69) + '" y="' + (y + 13) + '" font-family="var(--font-body)" font-size="10.5" font-weight="700" fill="#64748b" pointer-events="none">' + (tag || '125 MM') + '</text>' +
-                '<rect x="' + (x + 41) + '" y="' + (y - 12) + '" width="56" height="25" rx="12" fill="' + btnColor + '" pointer-events="all"/>' +
-                '<text x="' + (x + 69) + '" y="' + (y + 5) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#ffffff" pointer-events="none">' + btnText + '</text>';
-      if (hasGas && loopSource) {
-        out += '<text x="' + x + '" y="' + (y + 32) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="9.5" font-weight="800" fill="#b45309">⚡ Fed by ' + loopSource.id + ' (' + loopSource.pressure + ' Bar)</text>';
-      }
-      out += '</g>';
-      return out;
+    function renderValve(x, y, id, A, S, F) {
+      var v = A[id]; if (!v) return '';
+      var isOn = v.status === 'ON', hasGas = S[id], src = F[id];
+      var stroke = isOn ? (hasGas ? '#10b981' : '#f59e0b') : '#ef4444';
+      var disp = id.replace(/^(CG|S\d+)-/, '');
+      return `<g class="pid-valve-node" onclick="toggleAsset('${id}','${v.status}')">
+        <rect x="${x-105}" y="${y-23}" width="210" height="46" rx="23" fill="#fff" stroke="${stroke}" stroke-width="2.8"/>
+        <circle cx="${x-85}" cy="${y}" r="9" fill="${stroke}"/>
+        <text x="${x-69}" y="${y-2}" font-family="var(--font-tech)" font-size="13" font-weight="800" fill="#0f172a">${disp}</text>
+        <text x="${x-69}" y="${y+13}" font-size="10.5" font-weight="700" fill="#64748b">${v.tag||'125 MM'}</text>
+        <rect x="${x+41}" y="${y-12}" width="56" height="25" rx="12" fill="${isOn?'#16a34a':'#ef4444'}"/>
+        <text x="${x+69}" y="${y+5}" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ${v.status}</text>
+        ${hasGas && src ? `<text x="${x}" y="${y+33}" text-anchor="middle" font-family="var(--font-tech)" font-size="9.5" font-weight="800" fill="#b45309">⚡ Fed by ${src.id} (${src.pressure} Bar)</text>` : ''}
+      </g>`;
     }
 
-    function renderConsumerCard(pipeX, tapY, c, side, hasGas) {
-      if (!c) return '';
-      var isSupplyOn = Boolean(hasGas);
-      var type = (c.type || '').toUpperCase();
-      var border = '#a855f7', bg = '#faf5ff', sym = '🏠';
-      if (type.indexOf('IPNG') !== -1) { border = '#0284c7'; bg = '#f0f9ff'; sym = '🏭'; }
-      else if (type.indexOf('CPNG') !== -1) { border = '#f97316'; bg = '#fff7ed'; sym = '🏨'; }
-
-      var cardW = 260, cardH = 54;
-      var lineEndX = (side === 'left') ? (pipeX - 55) : (pipeX + 55);
-      var cardX = (side === 'left') ? (lineEndX - cardW) : lineEndX;
-      var cardY = tapY - (cardH / 2);
-
-      var pD = 'M ' + pipeX + ' ' + tapY + ' L ' + lineEndX + ' ' + tapY;
-      var pHtml = renderPipe(pD, isSupplyOn) + '<circle cx="' + pipeX + '" cy="' + tapY + '" r="4.5" fill="#f59e0b"/>';
-      var name = c.name && c.name.length > 25 ? c.name.slice(0, 23) + '..' : (c.name || c.id);
-
-      var cardHtml = '<g>' +
-                     '<rect x="' + cardX + '" y="' + cardY + '" width="' + cardW + '" height="' + cardH + '" rx="8" fill="' + (isSupplyOn ? bg : '#f8fafc') + '" stroke="' + (isSupplyOn ? border : '#cbd5e1') + '" stroke-width="2"/>' +
-                     '<text x="' + (cardX + 10) + '" y="' + (cardY + 18) + '" font-family="var(--font-tech)" font-size="13.5" font-weight="800" fill="' + (isSupplyOn ? '#0f172a' : '#64748b') + '">' + sym + ' ' + name + '</text>' +
-                     '<text x="' + (cardX + 10) + '" y="' + (cardY + 33) + '" font-family="var(--font-tech)" font-size="11" font-weight="700" fill="#0284c7">No: ' + c.id + ' • ' + (c.tag || '40') + '</text>' +
-                     '<text x="' + (cardX + 10) + '" y="' + (cardY + 47) + '" font-family="var(--font-body)" font-size="11" font-weight="800" fill="' + (isSupplyOn ? '#16a34a' : '#ef4444') + '">● ' + (isSupplyOn ? 'GAS ON' : 'GAS OFF') + '</text>' +
-                     '</g>';
-      return pHtml + cardHtml;
+    function renderCard(px, ty, id, side, A, S) {
+      var c = A[id]; if (!c) return '';
+      var on = Boolean(S[id]), t = (c.type||'').toUpperCase();
+      var bdr = '#a855f7', bg = '#faf5ff', sym = '🏠';
+      if (t.includes('IPNG')) { bdr = '#0284c7'; bg = '#f0f9ff'; sym = '🏭'; }
+      else if (t.includes('CPNG')) { bdr = '#f97316'; bg = '#fff7ed'; sym = '🏨'; }
+      var endX = side === 'left' ? px - 55 : px + 55;
+      var cx = side === 'left' ? endX - 260 : endX;
+      var nm = (c.name || id).slice(0, 24);
+      return renderPipe(`M ${px} ${ty} L ${endX} ${ty}`, on) +
+        `<circle cx="${px}" cy="${ty}" r="4.5" fill="#f59e0b"/>
+        <g onclick="if(currentUserRole==='admin') openAssetModal('${id}')" style="cursor:pointer;">
+          <rect x="${cx}" y="${ty-27}" width="260" height="54" rx="8" fill="${on?bg:'#f8fafc'}" stroke="${on?bdr:'#cbd5e1'}" stroke-width="2"/>
+          <text x="${cx+10}" y="${ty-9}" font-family="var(--font-tech)" font-size="13" font-weight="800" fill="${on?'#0f172a':'#64748b'}">${sym} ${nm}</text>
+          <text x="${cx+10}" y="${ty+6}" font-family="var(--font-tech)" font-size="11" font-weight="700" fill="#0284c7">No: ${c.id} • ${c.tag||'40'}</text>
+          <text x="${cx+10}" y="${ty+20}" font-size="11" font-weight="800" fill="${on?'#16a34a':'#ef4444'}">● ${on?'GAS ON':'GAS OFF'}</text>
+        </g>`;
     }
 
-    function renderLineBadge(x, label, isLive) {
-      var topP = renderPipe('M ' + x + ' 95 L ' + x + ' 118', isLive);
-      var botP = renderPipe('M ' + x + ' 142 L ' + x + ' 175', isLive);
-      var badge = '<g><rect x="' + (x - 65) + '" y="118" width="130" height="24" rx="12" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.8"/><text x="' + x + '" y="' + 134 + '" text-anchor="middle" font-family="var(--font-tech)" font-size="12" font-weight="800" fill="#0284c7">' + label + '</text></g>';
-      return topP + botP + badge;
+    function renderBadge(x, lbl, live) {
+      return renderPipe(`M ${x} 95 L ${x} 118`, live) + renderPipe(`M ${x} 142 L ${x} 175`, live) +
+        `<g><rect x="${x-65}" y="118" width="130" height="24" rx="12" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.8"/>
+        <text x="${x}" y="134" text-anchor="middle" font-family="var(--font-tech)" font-size="12" font-weight="800" fill="#0284c7">${lbl}</text></g>`;
     }
 
     function renderPAndID() {
       if (!scadaData || !scadaData.assets) return;
-      var A = scadaData.assets;
-      var S = scadaData.supply;
-      var F = scadaData.fed_by;
+      var A = scadaData.assets, S = scadaData.supply, F = scadaData.fed_by;
+      var svg = `<svg id="mainScadaSvg" viewBox="0 0 8800 1300" width="8800px" height="1300px" style="background:#fff;">
+        <g id="panZoomGroup" transform="translate(${panX},${panY}) scale(${currentZoom})">`;
 
-      var svgW = 8800, svgH = 1200;
-      var svg = '<svg id="mainScadaSvg" viewBox="0 0 ' + svgW + ' ' + svgH + '" width="' + svgW + 'px" height="' + svgH + 'px" style="background:#ffffff; border-radius:8px;">' +
-                '<g id="panZoomGroup" transform="translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')">';
-
-      // Main Headers
-      var d01HeaderOn = S['D01'], d03HeaderOn = S['D03'], d02HeaderOn = S['D02'];
-      if (A['D01']) {
-        svg += renderDRSBox(1650, 25, 'D01', A['D01'].name, A['D01'].pressure, A['D01'].status);
-        svg += renderPipe('M 250 95 L 3050 95', d01HeaderOn);
-      }
-      if (A['D03']) {
-        svg += renderDRSBox(4600, 25, 'D03', A['D03'].name, A['D03'].pressure, A['D03'].status);
-        svg += renderPipe('M 3900 95 L 5300 95', d03HeaderOn);
-      }
-      if (A['D02']) {
-        svg += renderDRSBox(7200, 25, 'D02', A['D02'].name, A['D02'].pressure, A['D02'].status);
-        svg += renderPipe('M 6150 95 L 8250 95', d02HeaderOn);
-      }
-
-      // --- D01 SUB-NETWORK ---
-      svg += renderLineBadge(250, '⚡ Direct Spurs', d01HeaderOn);
-      svg += renderPipe('M 250 175 L 250 355', d01HeaderOn);
-      if (A['D01-DIR-01']) svg += renderConsumerCard(250, 175, A['D01-DIR-01'], 'left', S['D01-DIR-01']);
-      if (A['D01-DIR-02']) svg += renderConsumerCard(250, 235, A['D01-DIR-02'], 'left', S['D01-DIR-02']);
-      if (A['D01-DIR-03']) svg += renderConsumerCard(250, 295, A['D01-DIR-03'], 'left', S['D01-DIR-03']);
-      if (A['D01-DIR-04']) svg += renderConsumerCard(250, 355, A['D01-DIR-04'], 'left', S['D01-DIR-04']);
-
-      // D01 Line 1
-      if (A['CG-D01-PE01']) {
-        svg += renderLineBadge(950, '⚡ LINE 1', d01HeaderOn);
-        svg += renderValveCapsule(950, 175, 'CG-D01-PE01', A['CG-D01-PE01'].tag, A['CG-D01-PE01'].status, S['CG-D01-PE01'], F['CG-D01-PE01']);
-        svg += renderPipe('M 950 198 L 950 245', S['CG-D01-PE01'] && A['CG-D01-PE01'].status === 'ON');
-        if (A['31000003']) svg += renderConsumerCard(950, 245, A['31000003'], 'right', S['31000003']);
-      }
-
-      // D01 Line 2
-      if (A['CG-D01-PE02']) {
-        svg += renderLineBadge(1650, '⚡ LINE 2', d01HeaderOn);
-        svg += renderValveCapsule(1650, 175, 'CG-D01-PE02', A['CG-D01-PE02'].tag, A['CG-D01-PE02'].status, S['CG-D01-PE02'], F['CG-D01-PE02']);
-        if (A['CG-D01-SR03']) svg += renderConsumerCard(1650, 230, A['CG-D01-SR03'], 'right', S['CG-D01-SR03']);
-        svg += renderPipe('M 1650 198 L 1650 295', S['CG-D01-PE02'] && A['CG-D01-PE02'].status === 'ON');
-      }
-      if (A['CG-D01-PE02/01']) {
-        svg += renderValveCapsule(1650, 295, 'CG-D01-PE02/01', A['CG-D01-PE02/01'].tag, A['CG-D01-PE02/01'].status, S['CG-D01-PE02/01'], F['CG-D01-PE02/01']);
-        svg += renderPipe('M 1650 318 L 1650 415', S['CG-D01-PE02/01'] && A['CG-D01-PE02/01'].status === 'ON');
-      }
-      if (A['CG-D01-PE02/02']) {
-        svg += renderValveCapsule(1650, 415, 'CG-D01-PE02/02', A['CG-D01-PE02/02'].tag, A['CG-D01-PE02/02'].status, S['CG-D01-PE02/02'], F['CG-D01-PE02/02']);
-        if (A['CG-D01-SR01']) svg += renderConsumerCard(1650, 470, A['CG-D01-SR01'], 'right', S['CG-D01-SR01']);
-        svg += renderPipe('M 1650 438 L 1650 555', S['CG-D01-PE02/02'] && A['CG-D01-PE02/02'].status === 'ON');
-      }
-      if (A['CG-D01-PE02/03']) {
-        svg += renderValveCapsule(1650, 555, 'CG-D01-PE02/03', A['CG-D01-PE02/03'].tag, A['CG-D01-PE02/03'].status, S['CG-D01-PE02/03'], F['CG-D01-PE02/03']);
-        svg += renderPipe('M 1650 578 L 1650 610', S['CG-D01-PE02/03'] && A['CG-D01-PE02/03'].status === 'ON');
-        if (A['CG-D01-SR07']) svg += renderConsumerCard(1650, 610, A['CG-D01-SR07'], 'right', S['CG-D01-SR07']);
-      }
-
-      // D01 Line 3
-      if (A['CG-D01-PE03']) {
-        svg += renderLineBadge(2350, '⚡ LINE 3', d01HeaderOn);
-        svg += renderValveCapsule(2350, 175, 'CG-D01-PE03', A['CG-D01-PE03'].tag, A['CG-D01-PE03'].status, S['CG-D01-PE03'], F['CG-D01-PE03']);
-        svg += renderPipe('M 2350 198 L 2350 275', S['CG-D01-PE03'] && A['CG-D01-PE03'].status === 'ON');
-      }
-      if (A['CG-D01-PE04']) {
-        svg += renderValveCapsule(2350, 275, 'CG-D01-PE04', A['CG-D01-PE04'].tag, A['CG-D01-PE04'].status, S['CG-D01-PE04'], F['CG-D01-PE04']);
-        svg += renderPipe('M 2350 298 L 2350 385', S['CG-D01-PE04'] && A['CG-D01-PE04'].status === 'ON');
-      }
-      if (A['CG-D01-PE04/01']) {
-        svg += renderValveCapsule(2350, 385, 'CG-D01-PE04/01', A['CG-D01-PE04/01'].tag, A['CG-D01-PE04/01'].status, S['CG-D01-PE04/01'], F['CG-D01-PE04/01']);
-        svg += renderPipe('M 2350 408 L 2350 495', S['CG-D01-PE04/01'] && A['CG-D01-PE04/01'].status === 'ON');
-      }
-      if (A['CG-D01-PE04/02']) {
-        svg += renderValveCapsule(2350, 495, 'CG-D01-PE04/02', A['CG-D01-PE04/02'].tag, A['CG-D01-PE04/02'].status, S['CG-D01-PE04/02'], F['CG-D01-PE04/02']);
-        svg += renderPipe('M 2350 518 L 2350 605', S['CG-D01-PE04/02'] && A['CG-D01-PE04/02'].status === 'ON');
-      }
-      if (A['CG-D01-PE04/03']) {
-        svg += renderValveCapsule(2350, 605, 'CG-D01-PE04/03', A['CG-D01-PE04/03'].tag, A['CG-D01-PE04/03'].status, S['CG-D01-PE04/03'], F['CG-D01-PE04/03']);
-        svg += renderPipe('M 2350 628 L 2350 660', S['CG-D01-PE04/03'] && A['CG-D01-PE04/03'].status === 'ON');
-        if (A['21300007']) svg += renderConsumerCard(2350, 660, A['21300007'], 'right', S['21300007']);
-      }
-
-      // T-Connect
-      if (A['CG-D01-PE04/01'] && A['CG-D01-PE05']) {
-        svg += renderPipe('M 2455 385 L 3050 385', S['CG-D01-PE04/01'] && S['CG-D01-PE05']);
-        svg += '<text x="2700" y="373" text-anchor="middle" font-family="var(--font-tech)" font-size="11.5" font-weight="800" fill="#b45309">⚡ 125 MM T-CONNECT</text>';
-      }
-
-      // D01 Line 4
-      if (A['CG-D01-PE05']) {
-        svg += renderPipe('M 3050 385 L 3050 435', S['CG-D01-PE05']);
-        svg += renderLineBadge(3050, '⚡ LINE 4', d01HeaderOn);
-        svg += renderValveCapsule(3050, 435, 'CG-D01-PE05', A['CG-D01-PE05'].tag, A['CG-D01-PE05'].status, S['CG-D01-PE05'], F['CG-D01-PE05']);
-        svg += renderPipe('M 3050 458 L 3050 545', S['CG-D01-PE05'] && A['CG-D01-PE05'].status === 'ON');
-      }
-      if (A['CG-D01-PE05/01']) {
-        svg += renderValveCapsule(3050, 545, 'CG-D01-PE05/01', A['CG-D01-PE05/01'].tag, A['CG-D01-PE05/01'].status, S['CG-D01-PE05/01'], F['CG-D01-PE05/01']);
-        svg += renderPipe('M 3050 568 L 3050 600', S['CG-D01-PE05/01'] && A['CG-D01-PE05/01'].status === 'ON');
-        if (A['21300016']) svg += renderConsumerCard(3050, 600, A['21300016'], 'left', S['21300016']);
-        svg += renderPipe('M 3050 568 L 3050 655', S['CG-D01-PE05/01'] && A['CG-D01-PE05/01'].status === 'ON');
-      }
-      if (A['CG-D01-PE06']) {
-        svg += renderValveCapsule(3050, 655, 'CG-D01-PE06', A['CG-D01-PE06'].tag, A['CG-D01-PE06'].status, S['CG-D01-PE06'], F['CG-D01-PE06']);
-        svg += renderPipe('M 3050 678 L 3050 755', S['CG-D01-PE06'] && A['CG-D01-PE06'].status === 'ON');
-      }
-      if (A['CG-D01-PE07']) {
-        svg += renderValveCapsule(3050, 755, 'CG-D01-PE07', A['CG-D01-PE07'].tag, A['CG-D01-PE07'].status, S['CG-D01-PE07'], F['CG-D01-PE07']);
-        svg += renderPipe('M 3050 778 L 3050 845', S['CG-D01-PE07'] && A['CG-D01-PE07'].status === 'ON');
-      }
-      if (A['CG-D01-PE07/01']) {
-        svg += renderValveCapsule(3050, 845, 'CG-D01-PE07/01', A['CG-D01-PE07/01'].tag, A['CG-D01-PE07/01'].status, S['CG-D01-PE07/01'], F['CG-D01-PE07/01']);
-      }
-
-      // --- D03 SUB-NETWORK ---
-      if (A['S03-D03-PE01']) {
-        svg += renderLineBadge(3900, '⚡ LINE 1', d03HeaderOn);
-        svg += renderValveCapsule(3900, 175, 'S03-D03-PE01', A['S03-D03-PE01'].tag, A['S03-D03-PE01'].status, S['S03-D03-PE01'], F['S03-D03-PE01']);
-        svg += renderPipe('M 3900 198 L 3900 235', S['S03-D03-PE01'] && A['S03-D03-PE01'].status === 'ON');
-        if (A['21300095']) svg += renderConsumerCard(3900, 235, A['21300095'], 'left', S['21300095']);
-        if (A['21300071']) svg += renderConsumerCard(3900, 235, A['21300071'], 'right', S['21300071']);
-        svg += renderPipe('M 3900 198 L 3900 335', S['S03-D03-PE01'] && A['S03-D03-PE01'].status === 'ON');
-      }
-      if (A['S03-D03-PE06']) {
-        svg += renderValveCapsule(3900, 335, 'S03-D03-PE06', A['S03-D03-PE06'].tag, A['S03-D03-PE06'].status, S['S03-D03-PE06'], F['S03-D03-PE06']);
-        svg += renderPipe('M 3900 358 L 3900 395', S['S03-D03-PE06'] && A['S03-D03-PE06'].status === 'ON');
-        if (A['21300055']) svg += renderConsumerCard(3900, 395, A['21300055'], 'left', S['21300055']);
-        if (A['21300038']) svg += renderConsumerCard(3900, 395, A['21300038'], 'right', S['21300038']);
-        svg += renderPipe('M 3900 358 L 3900 495', S['S03-D03-PE06'] && A['S03-D03-PE06'].status === 'ON');
-      }
-      if (A['S03-D03-PE07']) {
-        svg += renderValveCapsule(3900, 495, 'S03-D03-PE07', A['S03-D03-PE07'].tag, A['S03-D03-PE07'].status, S['S03-D03-PE07'], F['S03-D03-PE07']);
-        svg += renderPipe('M 3900 518 L 3900 555', S['S03-D03-PE07'] && A['S03-D03-PE07'].status === 'ON');
-        if (A['21300052']) svg += renderConsumerCard(3900, 555, A['21300052'], 'left', S['21300052']);
-      }
-
-      // D03 Line 2
-      if (A['S03-D03-PE02']) {
-        svg += renderLineBadge(4600, '⚡ LINE 2', d03HeaderOn);
-        svg += renderValveCapsule(4600, 175, 'S03-D03-PE02', A['S03-D03-PE02'].tag, A['S03-D03-PE02'].status, S['S03-D03-PE02'], F['S03-D03-PE02']);
-        svg += renderPipe('M 4600 198 L 4600 235', S['S03-D03-PE02'] && A['S03-D03-PE02'].status === 'ON');
-        if (A['21100002']) svg += renderConsumerCard(4600, 235, A['21100002'], 'left', S['21100002']);
-        if (A['21100007']) svg += renderConsumerCard(4600, 235, A['21100007'], 'right', S['21100007']);
-      }
-
-      // D03 Line 3
-      if (A['S03-D03-PE03']) {
-        svg += renderLineBadge(5300, '⚡ LINE 3', d03HeaderOn);
-        svg += renderValveCapsule(5300, 175, 'S03-D03-PE03', A['S03-D03-PE03'].tag, A['S03-D03-PE03'].status, S['S03-D03-PE03'], F['S03-D03-PE03']);
-        svg += renderPipe('M 5300 198 L 5300 235', S['S03-D03-PE03'] && A['S03-D03-PE03'].status === 'ON');
-        if (A['21300005']) svg += renderConsumerCard(5300, 235, A['21300005'], 'left', S['21300005']);
-        svg += renderPipe('M 5300 198 L 5300 335', S['S03-D03-PE03'] && A['S03-D03-PE03'].status === 'ON');
-      }
-      if (A['S03-D03-PE03/1']) {
-        svg += renderValveCapsule(5300, 335, 'S03-D03-PE03/1', A['S03-D03-PE03/1'].tag, A['S03-D03-PE03/1'].status, S['S03-D03-PE03/1'], F['S03-D03-PE03/1']);
-        svg += renderPipe('M 5300 358 L 5300 395', S['S03-D03-PE03/1'] && A['S03-D03-PE03/1'].status === 'ON');
-        if (A['21100001']) svg += renderConsumerCard(5300, 395, A['21100001'], 'left', S['21100001']);
-        if (A['21100008']) svg += renderConsumerCard(5300, 395, A['21100008'], 'right', S['21100008']);
-        svg += renderPipe('M 5300 358 L 5300 495', S['S03-D03-PE03/1'] && A['S03-D03-PE03/1'].status === 'ON');
-      }
-      if (A['S03-D03-PE04']) {
-        svg += renderValveCapsule(5300, 495, 'S03-D03-PE04', A['S03-D03-PE04'].tag, A['S03-D03-PE04'].status, S['S03-D03-PE04'], F['S03-D03-PE04']);
-      }
-
-      // --- D02 SUB-NETWORK ---
-      if (A['S02-D02-PE01']) {
-        svg += renderLineBadge(6150, '⚡ LINE 1', d02HeaderOn);
-        svg += renderValveCapsule(6150, 175, 'S02-D02-PE01', A['S02-D02-PE01'].tag, A['S02-D02-PE01'].status, S['S02-D02-PE01'], F['S02-D02-PE01']);
-        svg += renderPipe('M 6150 198 L 6150 235', S['S02-D02-PE01'] && A['S02-D02-PE01'].status === 'ON');
-        if (A['D02-SR10']) svg += renderConsumerCard(6150, 235, A['D02-SR10'], 'left', S['D02-SR10']);
-        if (A['31000015']) svg += renderConsumerCard(6150, 235, A['31000015'], 'right', S['31000015']);
-        svg += renderPipe('M 6150 198 L 6150 355', S['S02-D02-PE01'] && A['S02-D02-PE01'].status === 'ON');
-      }
-      if (A['S02-D02-PE04']) {
-        svg += renderValveCapsule(6150, 355, 'S02-D02-PE04', A['S02-D02-PE04'].tag, A['S02-D02-PE04'].status, S['S02-D02-PE04'], F['S02-D02-PE04']);
-        svg += renderPipe('M 6150 378 L 6150 415', S['S02-D02-PE04'] && A['S02-D02-PE04'].status === 'ON');
-        if (A['31000002']) svg += renderConsumerCard(6150, 415, A['31000002'], 'left', S['31000002']);
-        if (A['31000008']) svg += renderConsumerCard(6150, 415, A['31000008'], 'right', S['31000008']);
-      }
-
-      // D02 Line 2
-      if (A['S02-D02-PE02']) {
-        svg += renderLineBadge(6850, '⚡ LINE 2', d02HeaderOn);
-        svg += renderValveCapsule(6850, 175, 'S02-D02-PE02', A['S02-D02-PE02'].tag, A['S02-D02-PE02'].status, S['S02-D02-PE02'], F['S02-D02-PE02']);
-        svg += renderPipe('M 6850 198 L 6850 235', S['S02-D02-PE02'] && A['S02-D02-PE02'].status === 'ON');
-        if (A['31000024']) svg += renderConsumerCard(6850, 235, A['31000024'], 'left', S['31000024']);
-      }
-
-      // D02 Line 3
-      if (A['S02-D02-PE06']) {
-        svg += renderLineBadge(7550, '⚡ LINE 3', d02HeaderOn);
-        svg += renderValveCapsule(7550, 175, 'S02-D02-PE06', A['S02-D02-PE06'].tag, A['S02-D02-PE06'].status, S['S02-D02-PE06'], F['S02-D02-PE06']);
-        svg += renderPipe('M 7550 198 L 7550 235', S['S02-D02-PE06'] && A['S02-D02-PE06'].status === 'ON');
-        if (A['31000045']) svg += renderConsumerCard(7550, 235, A['31000045'], 'left', S['31000045']);
-      }
-
-      // D02 Line 4
-      if (A['S02-D02-PE08']) {
-        svg += renderLineBadge(8250, '⚡ LINE 4', d02HeaderOn);
-        svg += renderValveCapsule(8250, 175, 'S02-D02-PE08', A['S02-D02-PE08'].tag, A['S02-D02-PE08'].status, S['S02-D02-PE08'], F['S02-D02-PE08']);
-        svg += renderPipe('M 8250 198 L 8250 295', S['S02-D02-PE08'] && A['S02-D02-PE08'].status === 'ON');
-      }
-      if (A['S02-D02-PE07']) {
-        svg += renderValveCapsule(8250, 295, 'S02-D02-PE07', A['S02-D02-PE07'].tag, A['S02-D02-PE07'].status, S['S02-D02-PE07'], F['S02-D02-PE07']);
-        svg += renderPipe('M 8250 318 L 8250 415', S['S02-D02-PE07'] && A['S02-D02-PE07'].status === 'ON');
-      }
-      if (A['S02-D02-PE07/02']) {
-        svg += renderValveCapsule(8250, 415, 'S02-D02-PE07/02', A['S02-D02-PE07/02'].tag, A['S02-D02-PE07/02'].status, S['S02-D02-PE07/02'], F['S02-D02-PE07/02']);
-      }
-
-      // Ring Loops
-      if (A['CG-D01-PE05'] && A['S03-D03-PE04']) {
-        var tie1Live = S['CG-D01-PE05'] && A['CG-D01-PE05'].status === 'ON' && S['S03-D03-PE04'] && A['S03-D03-PE04'].status === 'ON';
-        var d01ToD03Path = 'M 3155 435 L 3400 435 L 3400 960 L 5550 960 L 5550 495 L 5405 495';
-        svg += renderPipe(d01ToD03Path, tie1Live);
-        svg += '<text x="4450" y="948" text-anchor="middle" font-family="var(--font-tech)" font-size="14.5" font-weight="800" fill="#b45309">⚡ RING CONDUIT: D01-PE05 ⟷ D03-PE04</text>';
-      }
-
-      if (A['S03-D03-PE04'] && A['S02-D02-PE08']) {
-        var tie2Live = S['S03-D03-PE04'] && A['S03-D03-PE04'].status === 'ON' && S['S02-D02-PE08'] && A['S02-D02-PE08'].status === 'ON';
-        var d03ToD02Path = 'M 5550 960 L 5550 1040 L 8500 1040 L 8500 175 L 8355 175';
-        svg += renderPipe(d03ToD02Path, tie2Live);
-        svg += '<text x="7000" y="1028" text-anchor="middle" font-family="var(--font-tech)" font-size="14.5" font-weight="800" fill="#b45309">⚡ RING CONDUIT: D03-PE04 ⟷ D02-PE08</text>';
-      }
-
-      svg += '</g></svg>';
-      document.getElementById('viewport').innerHTML = svg;
-    }
-
-    window.onload = function() {
-      setupViewportControls();
-      fetchLiveSnapshot();
-    };
-  </script>
-</body>
-</html>
+      // Headers
+      svg += renderDRSBox(1650, 25, 'D01', A, S) + renderPipe('M 250 95 L 3050 95', S['D01']);
+      svg += renderDRSBox(4600, 25, 'D03', A, S) + renderPipe('M 3900 95 L 5300 95', S['D03']);
+      svg += renderDRSBox(7200, 25, 'D
