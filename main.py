@@ -392,4 +392,136 @@ def reset_all():
 @app.post("/api/load-default")
 def load_default():
     conn = get_db()
-    cursor
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM assets")
+    cursor.execute("DELETE FROM pipelines")
+    seed_default_network(cursor)
+    conn.commit()
+    conn.close()
+    return build_response("Default BGL Network load aindi!")
+
+# EXCEL IMPORT
+@app.post("/api/upload-excel")
+async def upload_excel(file: UploadFile = File(...)):
+    filename = file.filename.lower()
+    if not (filename.endswith(".xlsx") or filename.endswith(".xlsm")):
+        return {"success": False, "message": "Kevalam .xlsx file mathrame upload cheyandi!"}
+
+    contents = await file.read()
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+    except Exception as e:
+        return {"success": False, "message": f"Excel error: {str(e)}"}
+
+    now = datetime.now().strftime("%Y-%m-%d")
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM assets")
+    cursor.execute("DELETE FROM pipelines")
+
+    assets_sheet = None
+    for s in wb.sheetnames:
+        if s.strip().lower() == "assets":
+            assets_sheet = wb[s]
+            break
+    if not assets_sheet:
+        assets_sheet = wb.active
+
+    asset_count = 0
+    if assets_sheet:
+        headers = [str(c.value or "").strip() for c in assets_sheet[1]]
+        col_map = {name: idx for idx, name in enumerate(headers) if name}
+
+        rows_to_insert = []
+        for row in assets_sheet.iter_rows(min_row=2, values_only=True):
+            if not row or len(row) == 0:
+                continue
+            aid = str(row[col_map.get("Asset ID", 0)] or "").strip()
+            if not aid or aid == "None":
+                continue
+            name = str(row[col_map.get("Asset Name", 1)] or aid).strip()
+            atype = str(row[col_map.get("Type", 2)] or "VALVE").strip().upper()
+            tag = str(row[col_map.get("Tag", 3)] or "125 MM").strip()
+            details = str(row[col_map.get("Details", 4)] or "").strip()
+            c_at = str(row[col_map.get("Created At", 5)] or now).strip()
+            u_at = str(row[col_map.get("Updated At", 6)] or now).strip()
+            status = str(row[col_map.get("Status", 7)] or "ON").strip().upper()
+            loc = str(row[col_map.get("Location", 8)] or "").strip() if len(row) > 8 else ""
+
+            press = 4.0 if atype == "DRS" else 0.0
+            if atype == "DRS" and "bar" in details.lower():
+                try:
+                    press = float("".join(ch for ch in details if ch.isdigit() or ch == "."))
+                except:
+                    pass
+            rows_to_insert.append((aid, name, atype, tag, details, c_at, u_at, status, loc, press))
+
+        cursor.executemany("INSERT OR REPLACE INTO assets VALUES (?,?,?,?,?,?,?,?,?,?)", rows_to_insert)
+        asset_count = len(rows_to_insert)
+
+    links_sheet = None
+    for s in wb.sheetnames:
+        if s.strip().lower() in ["links", "link", "sheet2"]:
+            links_sheet = wb[s]
+            break
+
+    link_count = 0
+    if links_sheet:
+        headers = [str(c.value or "").strip() for c in links_sheet[1]]
+        col_map = {name: idx for idx, name in enumerate(headers) if name}
+        p_idx = col_map.get("Parent ID", 0)
+        c_idx = col_map.get("Child ID", 1)
+
+        links_to_insert = []
+        for row in links_sheet.iter_rows(min_row=2, values_only=True):
+            if not row or len(row) < 2:
+                continue
+            src = str(row[p_idx] or "").strip()
+            tgt = str(row[c_idx] or "").strip()
+            if src and tgt and src != "None" and tgt != "None" and src != tgt:
+                links_to_insert.append((src, tgt, now))
+
+        cursor.executemany("INSERT OR IGNORE INTO pipelines VALUES (?,?,?)", links_to_insert)
+        link_count = len(links_to_insert)
+
+    conn.commit()
+    conn.close()
+    return build_response(f"Excel Import Success: {asset_count} Assets & {link_count} Links!")
+
+# EXCEL EXPORT
+@app.get("/api/export-excel")
+def export_excel():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM assets")
+    assets_rows = cursor.fetchall()
+    cursor.execute("SELECT * FROM pipelines")
+    links_rows = cursor.fetchall()
+    conn.close()
+
+    wb = openpyxl.Workbook()
+    ws_a = wb.active
+    ws_a.title = "Assets"
+    ws_a.append(["Asset ID", "Asset Name", "Type", "Tag", "Details", "Created At", "Updated At", "Status", "Location"])
+
+    for r in assets_rows:
+        ws_a.append([
+            r["id"], r["name"], r["type"], r["tag"], r["details"],
+            r["created_at"], r["updated_at"], r["status"], r["location"]
+        ])
+
+    ws_l = wb.create_sheet(title="Links")
+    ws_l.append(["Parent ID", "Child ID", "Created At"])
+    for r in links_rows:
+        ws_l.append([r["source_id"], r["target_id"], r["created_at"]])
+
+    stream = io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+
+    headers = {"Content-Disposition": "attachment; filename=BGL_SCADA_Data.xlsx"}
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers
+    )

@@ -651,4 +651,102 @@
       // Headers
       svg += renderDRSBox(1650, 25, 'D01', A, S) + renderPipe('M 250 95 L 3050 95', S['D01']);
       svg += renderDRSBox(4600, 25, 'D03', A, S) + renderPipe('M 3900 95 L 5300 95', S['D03']);
-      svg += renderDRSBox(7200, 25, 'D
+      svg += renderDRSBox(7200, 25, 'D02', A, S) + renderPipe('M 6150 95 L 8250 95', S['D02']);
+
+      // Direct Spurs D01
+      svg += renderBadge(250, '⚡ Direct Spurs', S['D01']) + renderPipe('M 250 175 L 250 355', S['D01']);
+      [['D01-DIR-01',175],['D01-DIR-02',235],['D01-DIR-03',295],['D01-DIR-04',355]].forEach(r => svg += renderCard(250, r[1], r[0], 'left', A, S));
+
+      // Column Definitions: [x, badge,drsId, [[valveId, y, nextY, [[consId, consY, side], ...]], ...]]
+      var cols = [
+        [950, '⚡ LINE 1', 'D01', [['CG-D01-PE01', 175, 245, [['31000003', 245, 'right']]]]],
+        [1650, '⚡ LINE 2', 'D01', [
+          ['CG-D01-PE02', 175, 295, [['CG-D01-SR03', 230, 'right']]],
+          ['CG-D01-PE02/01', 295, 415, []],
+          ['CG-D01-PE02/02', 415, 555, [['CG-D01-SR01', 470, 'right']]],
+          ['CG-D01-PE02/03', 555, 610, [['CG-D01-SR07', 610, 'right']]]
+        ]],
+        [2350, '⚡ LINE 3', 'D01', [
+          ['CG-D01-PE03', 175, 275, []], ['CG-D01-PE04', 275, 385, []],
+          ['CG-D01-PE04/01', 385, 495, []], ['CG-D01-PE04/02', 495, 605, []],
+          ['CG-D01-PE04/03', 605, 660, [['21300007', 660, 'right']]]
+        ]],
+        [3050, '⚡ LINE 4', 'D01', [
+          ['CG-D01-PE05', 435, 545, []],
+          ['CG-D01-PE05/01', 545, 655, [['21300016', 600, 'left']]],
+          ['CG-D01-PE06', 655, 755, []], ['CG-D01-PE07', 755, 845, []],
+          ['CG-D01-PE07/01', 845, 845, []]
+        ]],
+        [3900, '⚡ LINE 1', 'D03', [
+          ['S03-D03-PE01', 175, 335, [['21300095', 235, 'left'], ['21300071', 235, 'right']]],
+          ['S03-D03-PE06', 335, 495, [['21300055', 395, 'left'], ['21300038', 395, 'right']]],
+          ['S03-D03-PE07', 495, 555, [['21300052', 555, 'left']]]
+        ]],
+        [4600, '⚡ LINE 2', 'D03', [['S03-D03-PE02', 175, 235, [['21100002', 235, 'left'], ['21100007', 235, 'right']]]]],
+        [5300, '⚡ LINE 3', 'D03', [
+          ['S03-D03-PE03', 175, 335, [['21300005', 235, 'left']]],
+          ['S03-D03-PE03/1', 335, 495, [['21100001', 395, 'left'], ['21100008', 395, 'right']]],
+          ['S03-D03-PE04', 495, 495, []]
+        ]],
+        [6150, '⚡ LINE 1', 'D02', [
+          ['S02-D02-PE01', 175, 355, [['D02-SR10', 235, 'left'], ['31000015', 235, 'right']]],
+          ['S02-D02-PE04', 355, 415, [['31000002', 415, 'left'], ['31000008', 415, 'right']]]
+        ]],
+        [6850, '⚡ LINE 2', 'D02', [['S02-D02-PE02', 175, 235, [['31000024', 235, 'left']]]]],
+        [7550, '⚡ LINE 3', 'D02', [['S02-D02-PE06', 175, 235, [['31000045', 235, 'left']]]]],
+        [8250, '⚡ LINE 4', 'D02', [
+          ['S02-D02-PE08', 175, 295, []], ['S02-D02-PE07', 295, 415, []], ['S02-D02-PE07/02', 415, 415, []]
+        ]]
+      ];
+
+      var renderedIds = new Set(['D01','D02','D03','D01-DIR-01','D01-DIR-02','D01-DIR-03','D01-DIR-04']);
+      cols.forEach(col => {
+        var x = col[0], badge = col[1], drs = col[2], vList = col[3];
+        svg += renderBadge(x, badge, S[drs]);
+        vList.forEach(v => {
+          var vid = v[0], vy = v[1], ny = v[2], cList = v[3];
+          renderedIds.add(vid);
+          if (A[vid]) {
+            var vLive = S[vid] && A[vid].status === 'ON';
+            if (ny > vy) svg += renderPipe(`M ${x} ${vy+23} L ${x} ${ny}`, vLive);
+            svg += renderValve(x, vy, vid, A, S, F);
+          }
+          cList.forEach(c => { renderedIds.add(c[0]); svg += renderCard(x, c[1], c[0], c[2], A, S); });
+        });
+      });
+
+      // T-Connect & Ring Loops
+      svg += renderPipe('M 2455 385 L 3050 385 L 3050 435', S['CG-D01-PE04/01'] && S['CG-D01-PE05']);
+      var tie1 = S['CG-D01-PE05'] && A['CG-D01-PE05']?.status==='ON' && S['S03-D03-PE04'] && A['S03-D03-PE04']?.status==='ON';
+      var tie2 = S['S03-D03-PE04'] && A['S03-D03-PE04']?.status==='ON' && S['S02-D02-PE08'] && A['S02-D02-PE08']?.status==='ON';
+      svg += renderPipe('M 3155 435 L 3400 435 L 3400 960 L 5550 960 L 5550 495 L 5405 495', tie1);
+      svg += renderPipe('M 5550 960 L 5550 1040 L 8500 1040 L 8500 175 L 8355 175', tie2);
+
+      // Render any newly added Custom Linked Assets dynamically at bottom
+      var customX = 450, customY = 1140;
+      Object.keys(A).forEach(id => {
+        if (!renderedIds.has(id) && customX < 8400) {
+          var a = A[id];
+          if ((a.type||'').includes('VALVE')) svg += renderValve(customX, customY, id, A, S, F);
+          else svg += renderCard(customX, customY, id, 'right', A, S);
+          customX += 420;
+        }
+      });
+
+      svg += '</g></svg>';
+      document.getElementById('viewport').innerHTML = svg;
+    }
+
+    window.onload = function() {
+      setupViewportControls();
+      var savedRole = localStorage.getItem('bgl_role');
+      if (savedRole) {
+        currentUserRole = savedRole;
+        document.getElementById('loginOverlay').style.display = 'none';
+        applyRoleUI();
+      }
+      fetchLiveSnapshot();
+    };
+  </script>
+</body>
+</html>
