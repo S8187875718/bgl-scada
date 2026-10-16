@@ -16,7 +16,7 @@
 
     /* LOGIN OVERLAY */
     .login-overlay {
-      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(5px);
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
       display: flex; justify-content: center; align-items: center; z-index: 9999;
     }
     .login-card {
@@ -25,7 +25,7 @@
     }
     .login-card h2 { font-size: 1.25rem; color: #0c4a6e; font-weight: 800; margin-bottom: 4px; }
     .login-card p { font-size: 0.78rem; color: #64748b; margin-bottom: 16px; }
-    .login-field { width: 100%; padding: 9px 12px; margin-bottom: 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; }
+    .login-field { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; }
     .login-btn { width: 100%; padding: 10px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.9rem; }
     .login-btn:hover { background: #0369a1; }
     .login-hint { margin-top: 12px; font-size: 0.72rem; color: #475569; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px dashed #cbd5e1; }
@@ -99,7 +99,7 @@
     .pid-valve-node { cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
     .pid-valve-node:hover { filter: brightness(1.08) drop-shadow(0 3px 6px rgba(0,0,0,0.2)); }
 
-    /* MODALS (ASSET CREATE/EDIT & TABLE MANAGER) */
+    /* MODALS */
     .modal-bg {
       position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65);
       display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px;
@@ -136,8 +136,8 @@
       <input type="password" id="loginPass" class="login-field" placeholder="Password" value="admin123">
       <button class="login-btn" onclick="performLogin()">🔐 Sign In</button>
       <div class="login-hint">
-        <b>Admin:</b> admin / admin123 (Full Edit & Excel Access)<br>
-        <b>User:</b> user / user123 (View Only Mode)
+        <b>Admin:</b> admin / admin123<br>
+        <b>User:</b> user / user123
       </div>
     </div>
   </div>
@@ -157,10 +157,10 @@
     </div>
   </header>
 
-  <!-- 3. ADMIN CONTROL BAR (Visible only to Admin) -->
+  <!-- 3. ADMIN CONTROL BAR -->
   <div class="admin-bar" id="adminBar">
     <button class="adm-btn btn-blue" onclick="openAssetModal()">➕ Create Asset</button>
-    <button class="adm-btn btn-purple" onclick="openManagerModal()">📋 Manage Assets (Edit / Delete)</button>
+    <button class="adm-btn btn-purple" onclick="openManagerModal()">📋 Manage Assets</button>
 
     <div class="link-box">
       <span style="font-size:0.72rem;font-weight:800;color:#0369a1;">🔗 Link:</span>
@@ -174,7 +174,7 @@
     <input type="file" id="excelFileInput" accept=".xlsx,.xlsm" style="display:none;" onchange="handleExcelUpload(event)">
     <button class="adm-btn btn-green" onclick="document.getElementById('excelFileInput').click()">📥 Import Excel</button>
     <button class="adm-btn btn-amber" onclick="window.location.href='/api/export-excel'">📤 Export Excel</button>
-    <button class="adm-btn btn-slate" onclick="loadDefaultData()">🔄 Restore Default Network</button>
+    <button class="adm-btn btn-slate" onclick="loadDefaultData()">🔄 Restore Default</button>
   </div>
 
   <!-- 4. KPI BAR -->
@@ -187,7 +187,7 @@
     <div class="kpi-card kpi-cpng"><div class="num" id="kpiCpng">0</div><div class="lbl">CPNG</div></div>
   </div>
 
-  <!-- 5. MAIN P&ID SCHEMATIC -->
+  <!-- 5. MAIN VIEWPORT -->
   <div class="main-wrapper">
     <div class="overview-card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -211,7 +211,7 @@
     </div>
   </div>
 
-  <!-- MODAL A: CREATE / EDIT SINGLE ASSET -->
+  <!-- MODAL A -->
   <div class="modal-bg" id="assetModal">
     <div class="modal-box">
       <div class="modal-hdr">
@@ -219,83 +219,42 @@
         <button class="close-x" onclick="closeAssetModal()">✕</button>
       </div>
       <div class="form-grid">
-        <div class="form-grp">
-          <label>Asset ID *</label>
-          <input type="text" id="fAssetId" placeholder="e.g. CG-D01-PE08">
-        </div>
-        <div class="form-grp">
-          <label>Asset Name *</label>
-          <input type="text" id="fAssetName" placeholder="e.g. Shamirpet Valve 8">
-        </div>
-        <div class="form-grp">
-          <label>Type *</label>
+        <div class="form-grp"><label>Asset ID *</label><input type="text" id="fAssetId" placeholder="e.g. CG-D01-PE08"></div>
+        <div class="form-grp"><label>Asset Name *</label><input type="text" id="fAssetName" placeholder="Name"></div>
+        <div class="form-grp"><label>Type *</label>
           <select id="fAssetType">
-            <option value="VALVE">VALVE (Valve Chamber)</option>
-            <option value="IPNG">IPNG (Industrial)</option>
-            <option value="CPNG">CPNG (Commercial)</option>
-            <option value="SR">SR (Domestic Regulator)</option>
-            <option value="DRS">DRS (Station)</option>
+            <option value="VALVE">VALVE</option><option value="IPNG">IPNG</option>
+            <option value="CPNG">CPNG</option><option value="SR">SR</option><option value="DRS">DRS</option>
           </select>
         </div>
-        <div class="form-grp">
-          <label>Tag / Size</label>
-          <input type="text" id="fAssetTag" value="125 MM">
-        </div>
-        <div class="form-grp">
-          <label>Status</label>
-          <select id="fAssetStatus">
-            <option value="ON">ON</option>
-            <option value="OFF">OFF</option>
-          </select>
-        </div>
-        <div class="form-grp">
-          <label>Pressure (Bar - For DRS)</label>
-          <input type="number" step="0.1" id="fAssetPress" value="0.0">
-        </div>
-        <div class="form-grp">
-          <label>Location</label>
-          <input type="text" id="fAssetLoc" placeholder="Shamirpet / Medchal">
-        </div>
-        <div class="form-grp">
-          <label>Connect to Parent Asset (Optional)</label>
-          <select id="fAssetParent"><option value="">-- No Parent Link --</option></select>
-        </div>
-        <div class="form-grp" style="grid-column: span 2;">
-          <label>Details</label>
-          <input type="text" id="fAssetDetails" placeholder="Additional notes or pressure details">
-        </div>
+        <div class="form-grp"><label>Tag / Size</label><input type="text" id="fAssetTag" value="125 MM"></div>
+        <div class="form-grp"><label>Status</label><select id="fAssetStatus"><option value="ON">ON</option><option value="OFF">OFF</option></select></div>
+        <div class="form-grp"><label>Pressure (Bar)</label><input type="number" step="0.1" id="fAssetPress" value="0.0"></div>
+        <div class="form-grp"><label>Location</label><input type="text" id="fAssetLoc" placeholder="Location"></div>
+        <div class="form-grp"><label>Parent Link</label><select id="fAssetParent"><option value="">-- None --</option></select></div>
+        <div class="form-grp" style="grid-column: span 2;"><label>Details</label><input type="text" id="fAssetDetails" placeholder="Details"></div>
       </div>
       <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:8px;">
         <button class="adm-btn btn-slate" onclick="closeAssetModal()">Cancel</button>
-        <button class="adm-btn btn-blue" onclick="saveSingleAsset()">💾 Save Asset</button>
+        <button class="adm-btn btn-blue" onclick="saveSingleAsset()">💾 Save</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL B: MANAGE ASSETS TABLE (SEARCH, EDIT, DELETE) -->
+  <!-- MODAL B -->
   <div class="modal-bg" id="managerModal">
     <div class="modal-box wide">
       <div class="modal-hdr">
-        <h3>📋 Asset Database Manager (Edit / Delete)</h3>
+        <h3>📋 Asset Database Manager</h3>
         <button class="close-x" onclick="closeManagerModal()">✕</button>
       </div>
       <div style="display:flex; gap:10px; margin-bottom:10px;">
-        <input type="text" id="searchAssetInput" placeholder="🔍 Search by Asset ID, Name, Type, or Location..." style="flex:1; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;" oninput="renderAssetTable()">
-        <button class="adm-btn btn-blue" onclick="closeManagerModal(); openAssetModal();">+ Add New Asset</button>
+        <input type="text" id="searchAssetInput" placeholder="🔍 Search Asset..." style="flex:1; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;" oninput="renderAssetTable()">
+        <button class="adm-btn btn-blue" onclick="closeManagerModal(); openAssetModal();">+ Add New</button>
       </div>
       <div style="max-height: 420px; overflow-y: auto; border:1px solid #e2e8f0; border-radius:6px;">
         <table class="data-table">
-          <thead>
-            <tr>
-              <th>Asset ID</th>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Tag</th>
-              <th>Status</th>
-              <th>Location</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+          <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Tag</th><th>Status</th><th>Location</th><th>Actions</th></tr></thead>
           <tbody id="assetTableBody"></tbody>
         </table>
       </div>
@@ -308,23 +267,25 @@
     var panX = 40, panY = 20, currentZoom = 0.85;
     var isDragging = false, startMouseX = 0, startMouseY = 0;
 
-    // --- 1. LOGIN & ROLE CONTROL ---
     async function performLogin() {
-      var u = document.getElementById('loginUser').value;
-      var p = document.getElementById('loginPass').value;
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username: u, password: p })
-      });
-      const data = await res.json();
-      if (data.success) {
-        currentUserRole = data.role;
-        localStorage.setItem('bgl_role', data.role);
-        applyRoleUI();
-        document.getElementById('loginOverlay').style.display = 'none';
-      } else {
-        alert(data.message);
+      var u = document.getElementById('loginUser').value.trim();
+      var p = document.getElementById('loginPass').value.trim();
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentUserRole = data.role;
+          localStorage.setItem('bgl_role', data.role);
+          applyRoleUI();
+          document.getElementById('loginOverlay').style.display = 'none';
+        } else {
+          alert(data.message || "Login failed!");
+        }
+      } catch(e) {
+        alert("Server connection error: " + e.message);
       }
     }
 
@@ -344,7 +305,7 @@
         adminBar.style.display = 'flex';
         resetBtn.style.display = 'inline-block';
       } else {
-        badge.innerText = '👁️ User (View Only)';
+        badge.innerText = '👁️ User View';
         badge.className = 'role-badge role-user';
         adminBar.style.display = 'none';
         resetBtn.style.display = 'none';
@@ -352,7 +313,6 @@
       renderPAndID();
     }
 
-    // --- 2. PAN & ZOOM ---
     function changeZoom(delta) {
       currentZoom = Math.min(Math.max(currentZoom + delta, 0.15), 2.5);
       document.getElementById('zoomLevelText').innerText = Math.round(currentZoom * 100) + '%';
@@ -383,16 +343,19 @@
       window.onmouseup = function() { isDragging = false; };
     }
 
-    // --- 3. DATA SYNC & CRUD ---
     async function fetchLiveSnapshot() {
-      const res = await fetch('/api/snapshot');
-      scadaData = await res.json();
-      refreshUI();
+      try {
+        const res = await fetch('/api/snapshot');
+        scadaData = await res.json();
+        refreshUI();
+      } catch(e) {
+        console.error("Snapshot error:", e);
+      }
     }
 
     function refreshUI() {
       if (!scadaData || !scadaData.assets) return;
-      document.getElementById('statusText').innerText = "⚡ Real-time Python Engine Active (" + Object.keys(scadaData.assets).length + " Assets, " + (scadaData.pipelines ? scadaData.pipelines.length : 0) + " Links)";
+      document.getElementById('statusText').innerText = "⚡ SCADA Active (" + Object.keys(scadaData.assets).length + " Assets, " + (scadaData.pipelines ? scadaData.pipelines.length : 0) + " Links)";
       updateKPIs();
       updateDropdowns();
       renderPAndID();
@@ -420,11 +383,10 @@
       var html = ids.map(id => '<option value="' + id + '">' + id + ' (' + scadaData.assets[id].type + ')</option>').join('');
       document.getElementById('linkSource').innerHTML = html;
       document.getElementById('linkTarget').innerHTML = html;
-      document.getElementById('fAssetParent').innerHTML = '<option value="">-- Optional Parent --</option>' + html;
+      document.getElementById('fAssetParent').innerHTML = '<option value="">-- None --</option>' + html;
       if (ids.length > 1) document.getElementById('linkTarget').selectedIndex = 1;
     }
 
-    // Single Asset Modal Functions
     function openAssetModal(editId) {
       document.getElementById('assetModal').style.display = 'flex';
       if (editId && scadaData.assets[editId]) {
@@ -490,7 +452,6 @@
       renderAssetTable();
     }
 
-    // Manager Table Modal
     function openManagerModal() {
       document.getElementById('managerModal').style.display = 'flex';
       renderAssetTable();
@@ -551,7 +512,7 @@
     }
 
     async function toggleAsset(id, curStatus) {
-      if (currentUserRole !== 'admin') { alert("Kevalam Admin mathrame valves operate cheyagalaru!"); return; }
+      if (currentUserRole !== 'admin') { alert("Admin access required!"); return; }
       const next = curStatus === 'ON' ? 'OFF' : 'ON';
       const res = await fetch('/api/toggle', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: next })
@@ -579,7 +540,6 @@
       refreshUI();
     }
 
-    // --- 4. DATA-DRIVEN COMPACT P&ID RENDERER ---
     function renderPipe(d, active) {
       var s = '<path d="' + d + '" class="' + (active ? 'pipe-active' : 'pipe-inactive') + '"/>';
       if (active) s += '<path d="' + d + '" class="pipe-active-pulse"/>';
@@ -648,16 +608,13 @@
       var svg = `<svg id="mainScadaSvg" viewBox="0 0 8800 1300" width="8800px" height="1300px" style="background:#fff;">
         <g id="panZoomGroup" transform="translate(${panX},${panY}) scale(${currentZoom})">`;
 
-      // Headers
       svg += renderDRSBox(1650, 25, 'D01', A, S) + renderPipe('M 250 95 L 3050 95', S['D01']);
       svg += renderDRSBox(4600, 25, 'D03', A, S) + renderPipe('M 3900 95 L 5300 95', S['D03']);
       svg += renderDRSBox(7200, 25, 'D02', A, S) + renderPipe('M 6150 95 L 8250 95', S['D02']);
 
-      // Direct Spurs D01
       svg += renderBadge(250, '⚡ Direct Spurs', S['D01']) + renderPipe('M 250 175 L 250 355', S['D01']);
       [['D01-DIR-01',175],['D01-DIR-02',235],['D01-DIR-03',295],['D01-DIR-04',355]].forEach(r => svg += renderCard(250, r[1], r[0], 'left', A, S));
 
-      // Column Definitions: [x, badge,drsId, [[valveId, y, nextY, [[consId, consY, side], ...]], ...]]
       var cols = [
         [950, '⚡ LINE 1', 'D01', [['CG-D01-PE01', 175, 245, [['31000003', 245, 'right']]]]],
         [1650, '⚡ LINE 2', 'D01', [
@@ -715,14 +672,12 @@
         });
       });
 
-      // T-Connect & Ring Loops
       svg += renderPipe('M 2455 385 L 3050 385 L 3050 435', S['CG-D01-PE04/01'] && S['CG-D01-PE05']);
       var tie1 = S['CG-D01-PE05'] && A['CG-D01-PE05']?.status==='ON' && S['S03-D03-PE04'] && A['S03-D03-PE04']?.status==='ON';
       var tie2 = S['S03-D03-PE04'] && A['S03-D03-PE04']?.status==='ON' && S['S02-D02-PE08'] && A['S02-D02-PE08']?.status==='ON';
       svg += renderPipe('M 3155 435 L 3400 435 L 3400 960 L 5550 960 L 5550 495 L 5405 495', tie1);
       svg += renderPipe('M 5550 960 L 5550 1040 L 8500 1040 L 8500 175 L 8355 175', tie2);
 
-      // Render any newly added Custom Linked Assets dynamically at bottom
       var customX = 450, customY = 1140;
       Object.keys(A).forEach(id => {
         if (!renderedIds.has(id) && customX < 8400) {
