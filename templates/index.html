@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BGL Gas Network Control - SCADA</title>
+  <title>BGL Gas Network Control - SCADA v7.0</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -35,9 +35,10 @@
     .btn-green { background: #16a34a; color: #fff; }
     .btn-amber { background: #d97706; color: #fff; }
     .btn-teal { background: #0d9488; color: #fff; }
+    .btn-red { background: #dc2626; color: #fff; }
     .btn-slate { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
     .link-box { display: flex; align-items: center; gap: 5px; background: #f8fafc; padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; }
-    .link-select { padding: 4px 6px; font-size: 0.72rem; border-radius: 4px; border: 1px solid #cbd5e1; max-width: 140px; }
+    .link-input { padding: 5px 8px; font-size: 0.74rem; border-radius: 5px; border: 1.5px solid #94a3b8; width: 175px; font-weight: 600; }
     .overview-kpi-bar { background: #fff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 16px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
     .kpi-card { border-radius: 8px; padding: 4px 12px; min-width: 74px; text-align: center; }
     .kpi-card .num { font-family: var(--font-tech); font-size: 1.05rem; font-weight: 800; }
@@ -83,7 +84,7 @@
 </head>
 <body>
 
-  <!-- 1. LOGIN OVERLAY (WITH TOP-LEVEL INSTANT SCRIPT) -->
+  <!-- 1. LOGIN OVERLAY -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" style="width:60px;height:60px;margin-bottom:8px;">
@@ -130,7 +131,6 @@
         return;
       }
 
-      // Check server DB if not in local cache
       fetch('/api/login', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -174,24 +174,29 @@
     </div>
   </header>
 
-  <!-- 3. ADMIN BAR -->
+  <!-- 3. ADMIN BAR (WITH SEARCHABLE FILE NO / ID LINK INPUTS & KMZ DELETE MANAGER) -->
   <div class="admin-bar" id="adminBar">
     <button type="button" class="adm-btn btn-blue" onclick="openAssetModal()">➕ Create Asset</button>
     <button type="button" class="adm-btn btn-purple" onclick="openManagerModal()">📋 Manage Assets</button>
     <button type="button" class="adm-btn btn-teal" onclick="openUserModal()">👥 Manage Logins</button>
+
+    <!-- TYPE OR SELECT FILE NO / ASSET ID FOR LINKING -->
     <div class="link-box">
-      <span style="font-size:0.72rem;font-weight:800;color:#0369a1;">🔗 Link:</span>
-      <select id="linkSource" class="link-select"></select>
+      <span style="font-size:0.72rem;font-weight:800;color:#0369a1;">🔗 Link (Type File No / Select):</span>
+      <input type="text" id="linkSource" list="assetDatalist" class="link-input" placeholder="Parent ID / File No...">
       <span style="font-weight:800;">➔</span>
-      <select id="linkTarget" class="link-select"></select>
+      <input type="text" id="linkTarget" list="assetDatalist" class="link-input" placeholder="Child File No / ID...">
+      <datalist id="assetDatalist"></datalist>
       <button type="button" class="adm-btn btn-blue" style="padding:4px 8px;" onclick="submitLinkPipeline(false)">Add Link</button>
       <button type="button" class="adm-btn btn-slate" style="padding:4px 8px;color:#b91c1c;" onclick="submitLinkPipeline(true)">Unlink</button>
     </div>
+
     <input type="file" id="excelFileInput" accept=".xlsx,.xlsm" style="display:none;" onchange="handleExcelUpload(event)">
     <button type="button" class="adm-btn btn-green" onclick="document.getElementById('excelFileInput').click()">📥 Import Excel</button>
     <button type="button" class="adm-btn btn-amber" onclick="window.location.href='/api/export-excel'">📤 Export Excel</button>
     <input type="file" id="kmzFileInput" accept=".kmz,.kml" style="display:none;" onchange="handleKmzUpload(event)">
-    <button type="button" class="adm-btn btn-teal" onclick="document.getElementById('kmzFileInput').click()">🗺️ Upload KMZ / KML</button>
+    <button type="button" class="adm-btn btn-teal" onclick="document.getElementById('kmzFileInput').click()">🗺️ Upload KMZ</button>
+    <button type="button" class="adm-btn btn-red" onclick="openKmzModal()">🗑️ Manage KMZ</button>
   </div>
 
   <!-- 4. KPI BAR -->
@@ -240,7 +245,7 @@
     <div class="modal-box">
       <div class="modal-hdr"><h3 id="assetModalTitle">➕ Create / Edit Asset</h3><button type="button" class="close-x" onclick="closeAssetModal()">✕</button></div>
       <div class="form-grid">
-        <div class="form-grp"><label>Asset ID *</label><input type="text" id="fAssetId" placeholder="ID"></div>
+        <div class="form-grp"><label>Asset ID / File No *</label><input type="text" id="fAssetId" placeholder="ID / File No"></div>
         <div class="form-grp"><label>Asset Name *</label><input type="text" id="fAssetName" placeholder="Name"></div>
         <div class="form-grp"><label>Type *</label>
           <select id="fAssetType"><option value="VALVE">VALVE</option><option value="IPNG">IPNG</option><option value="CPNG">CPNG</option><option value="SR">SR</option><option value="DRS">DRS</option></select>
@@ -249,7 +254,7 @@
         <div class="form-grp"><label>Status</label><select id="fAssetStatus"><option value="ON">ON</option><option value="OFF">OFF</option></select></div>
         <div class="form-grp"><label>Pressure (Bar)</label><input type="number" step="0.1" id="fAssetPress" value="0.0"></div>
         <div class="form-grp"><label>Location (Lat,Lng)</label><input type="text" id="fAssetLoc" placeholder="e.g. 17.6231,78.5253"></div>
-        <div class="form-grp"><label>Parent Link</label><select id="fAssetParent"><option value="">-- None --</option></select></div>
+        <div class="form-grp"><label>Parent Link (Type ID or Select)</label><input type="text" id="fAssetParent" list="assetDatalist" placeholder="Optional Parent ID..."></div>
         <div class="form-grp" style="grid-column: span 2;"><label>Details</label><input type="text" id="fAssetDetails" placeholder="Details"></div>
       </div>
       <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:8px;">
@@ -264,12 +269,12 @@
     <div class="modal-box wide">
       <div class="modal-hdr"><h3>📋 Asset Database Manager</h3><button type="button" class="close-x" onclick="closeManagerModal()">✕</button></div>
       <div style="display:flex; gap:10px; margin-bottom:10px;">
-        <input type="text" id="searchAssetInput" placeholder="🔍 Search Asset..." style="flex:1; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;" oninput="renderAssetTable()">
+        <input type="text" id="searchAssetInput" placeholder="🔍 Search by File No / ID, Name, Type..." style="flex:1; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;" oninput="renderAssetTable()">
         <button type="button" class="adm-btn btn-blue" onclick="closeManagerModal(); openAssetModal();">+ Add New</button>
       </div>
       <div style="max-height: 420px; overflow-y: auto; border:1px solid #e2e8f0; border-radius:6px;">
         <table class="data-table">
-          <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Tag</th><th>Status</th><th>Location</th><th>Actions</th></tr></thead>
+          <thead><tr><th>File No / ID</th><th>Name</th><th>Type</th><th>Tag</th><th>Status</th><th>Location</th><th>Actions</th></tr></thead>
           <tbody id="assetTableBody"></tbody>
         </table>
       </div>
@@ -302,13 +307,34 @@
     </div>
   </div>
 
+  <!-- MODAL D: MANAGE / DELETE UPLOADED KMZ FILES & LAYERS -->
+  <div class="modal-bg" id="kmzModal">
+    <div class="modal-box wide">
+      <div class="modal-hdr">
+        <h3>🗺️ Manage Uploaded KMZ / KML Map Files</h3>
+        <button type="button" class="close-x" onclick="closeKmzModal()">✕</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:0.8rem; color:#475569; font-weight:600;">Wrong ga upload aina KMZ files leda individual pipeline layers ni ikkada delete cheyandi:</span>
+        <button type="button" class="adm-btn btn-red" onclick="clearAllKmzFiles()">🗑️ Delete All KMZ Data</button>
+      </div>
+      <div id="kmzFilesSummary" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;"></div>
+      <div style="max-height: 360px; overflow-y: auto; border:1px solid #e2e8f0; border-radius:6px;">
+        <table class="data-table">
+          <thead><tr><th>KMZ File Name</th><th>Layer / Pipeline Name</th><th>Type</th><th>Action</th></tr></thead>
+          <tbody id="kmzTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <script>
     var scadaData = null;
     var userOverrides = {};
     var drsPositions = {};
     var panX = 40, panY = 20, currentZoom = 0.85;
     var isDragging = false, startMouseX = 0, startMouseY = 0;
-    var BACKUP_KEY = 'bgl_scada_permanent_backup_v2';
+    var BACKUP_KEY = 'bgl_scada_permanent_backup_v3';
     var leafletMap = null, mapMarkersLayer = null, mapKmzLayer = null;
 
     function applyRoleUI() {
@@ -336,6 +362,74 @@
       userOverrides = {};
       try { localStorage.removeItem('bgl_role'); localStorage.removeItem('bgl_user'); } catch(e) {}
       document.getElementById('loginOverlay').style.display = 'flex';
+    }
+
+    // KMZ MANAGER MODAL FUNCTIONS
+    function openKmzModal() {
+      document.getElementById('kmzModal').style.display = 'flex';
+      renderKmzTable();
+    }
+    function closeKmzModal() { document.getElementById('kmzModal').style.display = 'none'; }
+
+    function renderKmzTable() {
+      var list = (scadaData && scadaData.kmz_overlays) ? scadaData.kmz_overlays : [];
+      var fileCounts = {};
+      list.forEach(function(item) {
+        var fn = item.file_name || 'KMZ_File';
+        fileCounts[fn] = (fileCounts[fn] || 0) + 1;
+      });
+
+      var fileChips = Object.keys(fileCounts).map(function(fn) {
+        return '<div style="background:#f1f5f9;border:1px solid #cbd5e1;padding:5px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:700;">' +
+          '<span>📁 ' + fn + ' (' + fileCounts[fn] + ')</span>' +
+          '<button class="act-btn act-del" data-fn="' + fn + '" onclick="deleteKmzByFile(this.getAttribute(\'data-fn\'))">🗑️ Delete File</button>' +
+        '</div>';
+      }).join('');
+      document.getElementById('kmzFilesSummary').innerHTML = fileChips || '<span style="font-size:0.78rem;color:#64748b;">No KMZ files uploaded yet.</span>';
+
+      document.getElementById('kmzTableBody').innerHTML = list.map(function(item) {
+        return '<tr>' +
+          '<td><b>' + (item.file_name || 'KMZ_File') + '</b></td>' +
+          '<td>' + (item.name || 'Pipeline') + '</td>' +
+          '<td>' + (item.geom_type || 'line').toUpperCase() + '</td>' +
+          '<td><button class="act-btn act-del" onclick="deleteKmzById(' + item.id + ')">🗑️ Delete</button></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function deleteKmzByFile(fn) {
+      if (!confirm('"' + fn + '" KMZ file mothanni map nundi delete cheyala?')) return;
+      fetch('/api/kmz/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ file_name: fn }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          scadaData = data;
+          saveBrowserBackup(data);
+          refreshUI(false);
+          renderKmzTable();
+        });
+    }
+
+    function deleteKmzById(id) {
+      fetch('/api/kmz/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          scadaData = data;
+          saveBrowserBackup(data);
+          refreshUI(false);
+          renderKmzTable();
+        });
+    }
+
+    function clearAllKmzFiles() {
+      if (!confirm('Map meedha unna KMZ files & lines anni delete cheyala?')) return;
+      fetch('/api/kmz/clear', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          scadaData = data;
+          saveBrowserBackup(data);
+          refreshUI(false);
+          renderKmzTable();
+        });
     }
 
     function openUserModal() {
@@ -498,13 +592,29 @@
       document.getElementById('kpiCpng').innerText = cpng;
     }
 
+    // POPULATE SEARCHABLE DATALIST (ALLOWS TYPING FILE NO OR ASSET NAME)
     function updateDropdowns() {
       var ids = Object.keys(scadaData.assets).sort();
-      var html = ids.map(function(id) { return '<option value="' + id + '">' + id + ' (' + scadaData.assets[id].type + ')</option>'; }).join('');
-      document.getElementById('linkSource').innerHTML = html;
-      document.getElementById('linkTarget').innerHTML = html;
-      document.getElementById('fAssetParent').innerHTML = '<option value="">-- None --</option>' + html;
-      if (ids.length > 1) document.getElementById('linkTarget').selectedIndex = 1;
+      var html = ids.map(function(id) {
+        var a = scadaData.assets[id];
+        return '<option value="' + id + '">' + id + ' (' + (a.type || '') + ' - ' + (a.name || '') + ')</option>';
+      }).join('');
+      document.getElementById('assetDatalist').innerHTML = html;
+    }
+
+    function resolveAssetInput(rawVal) {
+      var v = (rawVal || '').trim();
+      if (!v || !scadaData || !scadaData.assets) return v;
+      if (scadaData.assets[v]) return v;
+      // Extract ID if user picked "21100002 (IPNG)" format
+      var firstToken = v.split(' ')[0].trim();
+      if (scadaData.assets[firstToken]) return firstToken;
+      // Case-insensitive match by ID or Name
+      var low = v.toLowerCase();
+      var found = Object.keys(scadaData.assets).find(function(k) {
+        return k.toLowerCase() === low || (scadaData.assets[k].name || '').toLowerCase() === low;
+      });
+      return found || firstToken;
     }
 
     function openAssetModal(editId) {
@@ -520,12 +630,14 @@
         document.getElementById('fAssetPress').value = a.pressure || 0.0;
         document.getElementById('fAssetLoc').value = a.location || '';
         document.getElementById('fAssetDetails').value = a.details || '';
+        document.getElementById('fAssetParent').value = '';
       } else {
         document.getElementById('assetModalTitle').innerText = '➕ Create New Asset';
         document.getElementById('fAssetId').value = ''; document.getElementById('fAssetId').readOnly = false;
         document.getElementById('fAssetName').value = ''; document.getElementById('fAssetType').value = 'VALVE';
         document.getElementById('fAssetTag').value = '125 MM'; document.getElementById('fAssetStatus').value = 'ON';
         document.getElementById('fAssetPress').value = 0.0; document.getElementById('fAssetLoc').value = ''; document.getElementById('fAssetDetails').value = '';
+        document.getElementById('fAssetParent').value = '';
       }
     }
     function closeAssetModal() { document.getElementById('assetModal').style.display = 'none'; }
@@ -536,9 +648,9 @@
         type: document.getElementById('fAssetType').value, tag: document.getElementById('fAssetTag').value.trim(),
         status: document.getElementById('fAssetStatus').value, pressure: parseFloat(document.getElementById('fAssetPress').value) || 0.0,
         location: document.getElementById('fAssetLoc').value.trim(), details: document.getElementById('fAssetDetails').value.trim(),
-        parent_id: document.getElementById('fAssetParent').value
+        parent_id: resolveAssetInput(document.getElementById('fAssetParent').value)
       };
-      if (!payload.id) { alert('Asset ID ivvali!'); return; }
+      if (!payload.id) { alert('Asset ID / File No ivvali!'); return; }
       fetch('/api/asset/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -568,10 +680,20 @@
     }
 
     function submitLinkPipeline(isDelete) {
-      var src = document.getElementById('linkSource').value, tgt = document.getElementById('linkTarget').value;
+      var src = resolveAssetInput(document.getElementById('linkSource').value);
+      var tgt = resolveAssetInput(document.getElementById('linkTarget').value);
+      if (!src || !tgt) { alert('Parent mariyu Child File No / ID enter cheyandi!'); return; }
       fetch(isDelete ? '/api/pipeline/delete' : '/api/pipeline/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source_id: src, target_id: tgt }) })
         .then(function(r) { return r.json(); })
-        .then(function(data) { alert(data.message); if (data.success) { scadaData = data; refreshUI(false); } });
+        .then(function(data) {
+          alert(data.message);
+          if (data.success) {
+            scadaData = data;
+            document.getElementById('linkSource').value = '';
+            document.getElementById('linkTarget').value = '';
+            refreshUI(false);
+          }
+        });
     }
 
     function handleExcelUpload(event) {
@@ -667,13 +789,13 @@
           if (ov.geom_type === 'line' && coords.length >= 2) {
             lineCount++;
             var poly = L.polyline(coords, { color: '#0284c7', weight: 4, opacity: 0.9 });
-            poly.bindPopup('<b>📐 KMZ Pipeline:</b> ' + (ov.name || 'Line'));
+            poly.bindPopup('<b>📐 KMZ Pipeline:</b> ' + (ov.name || 'Line') + '<br><small>File: ' + (ov.file_name || '') + '</small>');
             mapKmzLayer.addLayer(poly);
             coords.forEach(function(c) { bounds.push(c); });
           } else if (ov.geom_type === 'point' && coords.length === 2) {
             pinCount++; bounds.push(coords);
             var kmzPt = L.circleMarker(coords, { radius: 6, fillColor: '#7c3aed', color: '#fff', weight: 1.5, fillOpacity: 0.9 });
-            kmzPt.bindPopup('<b>📍 KMZ Point:</b> ' + (ov.name || 'Point'));
+            kmzPt.bindPopup('<b>📍 KMZ Point:</b> ' + (ov.name || 'Point') + '<br><small>File: ' + (ov.file_name || '') + '</small>');
             mapKmzLayer.addLayer(kmzPt);
           }
         } catch(e) {}
@@ -730,7 +852,7 @@
 
     function renderValve(x, y, id, A, S, F) {
       var v = A[id]; if (!v) return '';
-      var isOn = v.status === 'ON', hasGas = S[id], src = F[id];
+      var isOn = v.status === 'ON', hasGas = Boolean(S[id] && isOn), src = F[id];
       var stroke = isOn ? (hasGas ? '#10b981' : '#f59e0b') : '#ef4444';
       var disp = id.replace(/^(CG|S\d+)-/, ''), hasLoc = Boolean(v.location && v.location.trim());
       return '<g class="pid-valve-node" data-id="' + id + '" data-st="' + v.status + '" onclick="toggleAsset(this.getAttribute(\'data-id\'), this.getAttribute(\'data-st\'))">' +
@@ -789,7 +911,7 @@
 
     function renderPAndID() {
       if (!scadaData || !scadaData.assets) return;
-      var A = scadaData.assets, S = scadaData.supply || {}, F = scadaData.fed_by || {}, R = scadaData.flow_rank || {};
+      var A = scadaData.assets;
       var rawPipes = scadaData.pipelines || [];
 
       var dirAdj = {}, undirAdj = {};
@@ -835,23 +957,31 @@
         });
       }
 
-      var nodeCoords = {}, colX = 550, maxTreeY = 900, svgElements = '';
+      // Build the EXACT visual topology graph first so gas flow NEVER secretly bypasses closed valves!
+      var visualAdj = {};
+      Object.keys(A).forEach(function(k) { visualAdj[k] = []; });
+      function addVisEdge(u, v) {
+        if (!u || !v || !visualAdj[u] || !visualAdj[v]) return;
+        if (visualAdj[u].indexOf(v) === -1) visualAdj[u].push(v);
+        if (visualAdj[v].indexOf(u) === -1) visualAdj[v].push(u);
+      }
+
+      var layoutPlans = [];
+      var nodeCoords = {}, colX = 550, maxTreeY = 900;
 
       drsList.forEach(function(drs) {
         var rawBranches = (treeChildren[drs.id] || []).filter(function(bId) { return Boolean(A[bId]); });
         var directConsumers = rawBranches.filter(function(bId) { return !isValveNode(bId, A); });
         var valveBranches = rawBranches.filter(function(bId) { return isValveNode(bId, A); });
-        var startX = colX, mainHeaderCols = [];
+        var startX = colX, mainHeaderCols = [], drsCols = [];
 
         if (directConsumers.length > 0) {
           var spurX = colX;
           mainHeaderCols.push({ x: spurX, id: directConsumers[0] });
-          svgElements += renderBadge(spurX, '⚡ Direct Spurs', S[drs.id], false);
-          svgElements += renderPipe('M ' + spurX + ' 161 L ' + spurX + ' ' + (185 + (directConsumers.length - 1) * 70), S[drs.id], false);
           directConsumers.forEach(function(cid, idx) {
             var cy = 185 + (idx * 70);
             nodeCoords[cid] = { x: spurX, y: cy };
-            svgElements += renderCard(spurX, cy, cid, (idx % 2 === 0) ? 'left' : 'right', A, S);
+            addVisEdge(drs.id, cid);
             if (cy > maxTreeY) maxTreeY = cy;
           });
           colX += 760;
@@ -870,43 +1000,35 @@
 
             if (!colItem.fromT) {
               mainHeaderCols.push({ x: bx, id: colItem.startNode });
-              var topNode = colItem.startNode;
-              var branchLive = Boolean(S[drs.id] && S[topNode] && A[topNode].status === 'ON');
-              svgElements += renderBadge(bx, '⚡ LINE ' + colItem.lineNum, branchLive, isReverse(drs.id, topNode, R));
+              addVisEdge(drs.id, colItem.startNode);
             } else {
-              var pt = colItem.fromT;
-              var tLive = Boolean(S[pt.id] && A[pt.id] && A[pt.id].status === 'ON' && S[colItem.startNode]);
-              var routeY = pt.y - 36;
-              var tPath = 'M ' + (pt.x + 105) + ' ' + pt.y + ' L ' + (pt.x + 135) + ' ' + pt.y + ' L ' + (pt.x + 135) + ' ' + routeY + ' L ' + bx + ' ' + routeY + ' L ' + bx + ' ' + (colItem.startY - 24);
-              svgElements += renderPipe(tPath, tLive, isReverse(pt.id, colItem.startNode, R));
-              svgElements += '<text x="' + Math.round((pt.x + 135 + bx)/2) + '" y="' + (routeY - 8) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#b45309">⚡ T-CONNECT</text>';
+              addVisEdge(colItem.fromT.id, colItem.startNode);
             }
 
             var seriesQueue = [colItem.startNode], curY = colItem.startY, prevValveId = null, prevValveBottomY = 0;
+            var colSteps = [];
 
             while (seriesQueue.length > 0) {
               var cNode = seriesQueue.shift();
               if (!cNode || !A[cNode]) continue;
-              var cAsset = A[cNode];
               nodeCoords[cNode] = { x: bx, y: curY };
 
               if (prevValveId) {
-                var segLive = Boolean(S[prevValveId] && A[prevValveId].status === 'ON' && S[cNode]);
-                svgElements += renderPipe('M ' + bx + ' ' + prevValveBottomY + ' L ' + bx + ' ' + (curY - 24), segLive, isReverse(prevValveId, cNode, R));
+                addVisEdge(prevValveId, cNode);
               }
 
               if (isValveNode(cNode, A)) {
-                svgElements += renderValve(bx, curY, cNode, A, S, F);
                 var kids = treeChildren[cNode] || [];
                 var childConsumers = kids.filter(function(n) { return !isValveNode(n, A); });
                 var childValves = kids.filter(function(n) { return isValveNode(n, A); });
 
                 var tapY = curY + 72;
+                var cCards = [];
                 childConsumers.forEach(function(cid, cIdx) {
                   var side = (cIdx % 2 === 0) ? 'left' : 'right';
                   nodeCoords[cid] = { x: bx, y: tapY };
-                  svgElements += renderPipe('M ' + bx + ' ' + (curY+24) + ' L ' + bx + ' ' + tapY, S[cNode] && cAsset.status === 'ON', false);
-                  svgElements += renderCard(bx, tapY, cid, side, A, S);
+                  addVisEdge(cNode, cid);
+                  cCards.push({ cid: cid, tapY: tapY, side: side });
                   if (cIdx % 2 === 1) tapY += 72;
                 });
                 if (childConsumers.length % 2 === 1) tapY += 72;
@@ -920,13 +1042,15 @@
                 });
                 if (sameColValves.length > 0) seriesQueue.unshift.apply(seriesQueue, sameColValves);
 
+                colSteps.push({ isValve: true, cNode: cNode, curY: curY, prevValveId: prevValveId, prevValveBottomY: prevValveBottomY, cCards: cCards });
                 prevValveId = cNode; prevValveBottomY = curY + 24; curY = nextY;
               } else {
-                svgElements += renderCard(bx, curY, cNode, 'right', A, S);
+                colSteps.push({ isValve: false, cNode: cNode, curY: curY, prevValveId: prevValveId, prevValveBottomY: prevValveBottomY });
                 curY += 80;
               }
               if (curY > maxTreeY) maxTreeY = curY;
             }
+            drsCols.push({ bx: bx, colItem: colItem, colSteps: colSteps });
             colX += 760;
           }
         }
@@ -937,33 +1061,130 @@
         drsPositions[drs.id] = centerDrsX;
         nodeCoords[drs.id] = { x: centerDrsX, y: 25 };
 
-        svgElements += renderDRSBox(centerDrsX, 25, drs.id, A, S);
-
-        var headerFeedX = centerDrsX;
-        if (drs.status !== 'ON' && mainHeaderCols.length > 0) {
-          var bestRank = 999999;
-          mainHeaderCols.forEach(function(mc) { if (R[mc.id] && R[mc.id] < bestRank) { bestRank = R[mc.id]; headerFeedX = mc.x; } });
-        }
-        if (mainHeaderCols.length > 1) {
-          for (var hi = 0; hi < mainHeaderCols.length - 1; hi++) {
-            var cA = mainHeaderCols[hi], cB = mainHeaderCols[hi + 1];
-            svgElements += renderPipe('M ' + cA.x + ' 105 L ' + cB.x + ' 105', S[drs.id], ((cA.x + cB.x) / 2) < headerFeedX);
-          }
-        }
+        layoutPlans.push({ drs: drs, directConsumers: directConsumers, startX: startX, mainHeaderCols: mainHeaderCols, centerDrsX: centerDrsX, drsCols: drsCols });
         colX += 360;
       });
 
-      var loopIdx = 0, baseLoopY = maxTreeY + 90, drawnPairLoops = new Set();
+      // Collect visible Ring Loop edges
+      var visibleLoops = [], drawnPairLoops = new Set();
       validPipes.forEach(function(p) {
         var u = p[0], v = p[1], k = edgeKey(u, v);
         if (drawnTreeEdges.has(k) || !isValveNode(u, A) || !isValveNode(v, A) || !nodeCoords[u] || !nodeCoords[v]) return;
         var drsPairKey = edgeKey(ownerDRS[u] || u, ownerDRS[v] || v);
         if (ownerDRS[u] === ownerDRS[v] || drawnPairLoops.has(drsPairKey)) return;
         drawnPairLoops.add(drsPairKey); drawnTreeEdges.add(k);
+        addVisEdge(u, v);
+        visibleLoops.push([u, v]);
+      });
 
+      // Compute STRICT BFS Flow on the Visual Topology (Closed VC 100% blocks gas flow!)
+      var S = {}, F = {}, R = {}, stepCounter = 1;
+      Object.keys(A).forEach(function(k) { S[k] = false; });
+
+      var activeDrsList = drsList.filter(function(d) { return (d.status || 'ON').toUpperCase() === 'ON'; })
+                                 .sort(function(a,b) { return (parseFloat(b.pressure)||4) - (parseFloat(a.pressure)||4); });
+
+      activeDrsList.forEach(function(drs) {
+        var press = parseFloat(drs.pressure) || 4.0;
+        S[drs.id] = true;
+        F[drs.id] = { id: drs.id, pressure: press };
+        if (!R[drs.id]) R[drs.id] = stepCounter++;
+
+        var q = [drs.id];
+        var visited = new Set([drs.id]);
+
+        while (q.length > 0) {
+          var curr = q.shift();
+          // If curr is a Valve and is OFF, gas CANNOT pass through it!
+          if (isValveNode(curr, A) && (A[curr].status || 'ON').toUpperCase() === 'OFF') {
+            S[curr] = false;
+            continue;
+          }
+
+          (visualAdj[curr] || []).forEach(function(nbr) {
+            if (visited.has(nbr)) return;
+            // If neighbor is a closed valve, stop before energizing it!
+            if (isValveNode(nbr, A) && (A[nbr].status || 'ON').toUpperCase() === 'OFF') {
+              visited.add(nbr);
+              S[nbr] = false;
+              return;
+            }
+            visited.add(nbr);
+            S[nbr] = true;
+            if (!F[nbr]) F[nbr] = F[curr];
+            if (!R[nbr]) R[nbr] = stepCounter++;
+            q.push(nbr);
+          });
+        }
+      });
+      scadaData.supply = S;
+
+      // Render SVG Elements using strict visual S, F, R
+      var svgElements = '';
+      layoutPlans.forEach(function(plan) {
+        var drs = plan.drs;
+        if (plan.directConsumers.length > 0) {
+          var spurX = plan.startX;
+          svgElements += renderBadge(spurX, '⚡ Direct Spurs', S[drs.id], false);
+          svgElements += renderPipe('M ' + spurX + ' 161 L ' + spurX + ' ' + (185 + (plan.directConsumers.length - 1) * 70), S[drs.id], false);
+          plan.directConsumers.forEach(function(cid, idx) {
+            svgElements += renderCard(spurX, 185 + (idx * 70), cid, (idx % 2 === 0) ? 'left' : 'right', A, S);
+          });
+        }
+
+        plan.drsCols.forEach(function(dc) {
+          var bx = dc.bx, colItem = dc.colItem;
+          if (!colItem.fromT) {
+            var topNode = colItem.startNode;
+            var branchLive = Boolean(S[drs.id] && S[topNode]);
+            svgElements += renderBadge(bx, '⚡ LINE ' + colItem.lineNum, branchLive, isReverse(drs.id, topNode, R));
+          } else {
+            var pt = colItem.fromT;
+            var tLive = Boolean(S[pt.id] && S[colItem.startNode]);
+            var routeY = pt.y - 36;
+            var tPath = 'M ' + (pt.x + 105) + ' ' + pt.y + ' L ' + (pt.x + 135) + ' ' + pt.y + ' L ' + (pt.x + 135) + ' ' + routeY + ' L ' + bx + ' ' + routeY + ' L ' + bx + ' ' + (colItem.startY - 24);
+            svgElements += renderPipe(tPath, tLive, isReverse(pt.id, colItem.startNode, R));
+            svgElements += '<text x="' + Math.round((pt.x + 135 + bx)/2) + '" y="' + (routeY - 8) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#b45309">⚡ T-CONNECT</text>';
+          }
+
+          dc.colSteps.forEach(function(st) {
+            if (st.prevValveId) {
+              var segLive = Boolean(S[st.prevValveId] && S[st.cNode]);
+              svgElements += renderPipe('M ' + bx + ' ' + st.prevValveBottomY + ' L ' + bx + ' ' + (st.curY - 24), segLive, isReverse(st.prevValveId, st.cNode, R));
+            }
+            if (st.isValve) {
+              svgElements += renderValve(bx, st.curY, st.cNode, A, S, F);
+              st.cCards.forEach(function(cc) {
+                svgElements += renderPipe('M ' + bx + ' ' + (st.curY+24) + ' L ' + bx + ' ' + cc.tapY, S[st.cNode], false);
+                svgElements += renderCard(bx, cc.tapY, cc.cid, cc.side, A, S);
+              });
+            } else {
+              svgElements += renderCard(bx, st.curY, st.cNode, 'right', A, S);
+            }
+          });
+        });
+
+        svgElements += renderDRSBox(plan.centerDrsX, 25, drs.id, A, S);
+
+        var headerFeedX = plan.centerDrsX;
+        if (drs.status !== 'ON' && plan.mainHeaderCols.length > 0) {
+          var bestRank = 999999;
+          plan.mainHeaderCols.forEach(function(mc) { if (R[mc.id] && R[mc.id] < bestRank) { bestRank = R[mc.id]; headerFeedX = mc.x; } });
+        }
+        if (plan.mainHeaderCols.length > 1) {
+          for (var hi = 0; hi < plan.mainHeaderCols.length - 1; hi++) {
+            var cA = plan.mainHeaderCols[hi], cB = plan.mainHeaderCols[hi + 1];
+            svgElements += renderPipe('M ' + cA.x + ' 105 L ' + cB.x + ' 105', S[drs.id], ((cA.x + cB.x) / 2) < headerFeedX);
+          }
+        }
+      });
+
+      var loopIdx = 0, baseLoopY = maxTreeY + 90;
+      visibleLoops.forEach(function(p) {
+        var u = p[0], v = p[1];
         var p1 = nodeCoords[u], p2 = nodeCoords[v], loopY = baseLoopY + (loopIdx * 55);
         loopIdx++;
-        var loopLive = Boolean(S[u] && (!A[u] || A[u].status === 'ON') && S[v] && (!A[v] || A[v].status === 'ON'));
+        var loopLive = Boolean(S[u] && S[v]);
         var corrX1 = p1.x + 345, corrX2 = p2.x + 345;
         var loopPath = 'M ' + (p1.x + 105) + ' ' + p1.y + ' L ' + corrX1 + ' ' + p1.y + ' L ' + corrX1 + ' ' + loopY + ' L ' + corrX2 + ' ' + loopY + ' L ' + corrX2 + ' ' + p2.y + ' L ' + (p2.x + 105) + ' ' + p2.y;
         svgElements += renderPipe(loopPath, loopLive, isReverse(u, v, R));

@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 import networkx as nx
 
-app = FastAPI(title="BGL Gas SCADA Engine v6.1")
+app = FastAPI(title="BGL Gas SCADA Engine v7.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_HTML = os.path.join(BASE_DIR, "templates", "index.html")
@@ -161,11 +161,28 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS kmz_overlays (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_name TEXT DEFAULT 'KMZ_File',
             name TEXT,
             geom_type TEXT,
             coords_json TEXT
         )
     """)
+
+    # Ensure file_name column exists in kmz_overlays
+    cursor.execute("PRAGMA table_info(kmz_overlays)")
+    kcols = [r[1] for r in cursor.fetchall()]
+    if "file_name" not in kcols:
+        cursor.execute("DROP TABLE IF EXISTS kmz_overlays")
+        cursor.execute("""
+            CREATE TABLE kmz_overlays (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_name TEXT DEFAULT 'KMZ_File',
+                name TEXT,
+                geom_type TEXT,
+                coords_json TEXT
+            )
+        """)
+        conn.commit()
 
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
@@ -232,6 +249,10 @@ class PipelineReq(BaseModel):
     source_id: str
     target_id: str
 
+class KmzDeleteReq(BaseModel):
+    id: int = 0
+    file_name: str = ""
+
 class BackupRestoreReq(BaseModel):
     assets: Dict[str, Any]
     pipelines: List[List[str]]
@@ -253,7 +274,7 @@ def load_network_from_db(overrides: Dict[str, str] = None):
     assets = {row["id"]: dict(row) for row in cursor.fetchall()}
     cursor.execute("SELECT source_id, target_id FROM pipelines")
     pipelines = [(row["source_id"], row["target_id"]) for row in cursor.fetchall()]
-    cursor.execute("SELECT name, geom_type, coords_json FROM kmz_overlays")
+    cursor.execute("SELECT id, file_name, name, geom_type, coords_json FROM kmz_overlays ORDER BY id DESC")
     kmz_list = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
@@ -302,14 +323,19 @@ def run_scada_bfs_flow(overrides: Dict[str, str] = None):
             c_type = str(assets.get(curr, {}).get("type", "")).upper()
             c_stat = str(assets.get(curr, {}).get("status", "ON")).upper()
 
-            # ONLY closed Valves stop flow.
-            # If a DRS station is OFF, its common header manifold STILL allows back-fed loop gas to flow into its other lines!
             if ("VALVE" in c_type or c_type == "VC") and c_stat == "OFF":
+                gas_supply[curr] = False
                 continue
 
             if curr in G:
                 for nbr in G.neighbors(curr):
                     if nbr not in visited:
+                        n_type = str(assets.get(nbr, {}).get("type", "")).upper()
+                        n_stat = str(assets.get(nbr, {}).get("status", "ON")).upper()
+                        if ("VALVE" in n_type or n_type == "VC") and n_stat == "OFF":
+                            visited.add(nbr)
+                            gas_supply[nbr] = False
+                            continue
                         visited.add(nbr)
                         gas_supply[nbr] = True
                         if nbr not in fed_by:
@@ -441,8 +467,8 @@ def restore_backup(req: BackupRestoreReq):
 
     if req.kmz_overlays:
         cursor.execute("DELETE FROM kmz_overlays")
-        k_rows = [(k.get("name", ""), k.get("geom_type", "line"), k.get("coords_json", "[]")) for k in req.kmz_overlays]
-        cursor.executemany("INSERT INTO kmz_overlays (name, geom_type, coords_json) VALUES (?,?,?)", k_rows)
+        k_rows = [(k.get("file_name", "KMZ_File"), k.get("name", ""), k.get("geom_type", "line"), k.get("coords_json", "[]")) for k in req.kmz_overlays]
+        cursor.executemany("INSERT INTO kmz_overlays (file_name, name, geom_type, coords_json) VALUES (?,?,?,?)", k_rows)
 
     conn.commit()
     conn.close()
@@ -496,23 +522,26 @@ def delete_asset(req: AssetDeleteReq):
 
 @app.post("/api/pipeline/add")
 def add_pipeline(req: PipelineReq):
+    src, tgt = req.source_id.strip(), req.target_id.strip()
+    if not src or not tgt or src == tgt:
+        return {"success": False, "message": "Valid Parent mariyu Child Asset ID enter cheyandi!"}
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("INSERT OR IGNORE INTO pipelines VALUES (?, ?, ?)", (req.source_id.strip(), req.target_id.strip(), now))
+    cursor.execute("INSERT OR IGNORE INTO pipelines VALUES (?, ?, ?)", (src, tgt, now))
     conn.commit()
     conn.close()
-    return build_response("Link added permanently!")
+    return build_response(f"Link '{src}' ➔ '{tgt}' added permanently!")
 
 @app.post("/api/pipeline/delete")
 def delete_pipeline(req: PipelineReq):
+    src, tgt = req.source_id.strip(), req.target_id.strip()
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM pipelines WHERE (source_id=? AND target_id=?) OR (source_id=? AND target_id=?)", 
-                   (req.source_id.strip(), req.target_id.strip(), req.target_id.strip(), req.source_id.strip()))
+    cursor.execute("DELETE FROM pipelines WHERE (source_id=? AND target_id=?) OR (source_id=? AND target_id=?)", (src, tgt, tgt, src))
     conn.commit()
     conn.close()
-    return build_response("Link removed permanently!")
+    return build_response(f"Link '{src}' ⟷ '{tgt}' removed permanently!")
 
 @app.post("/api/toggle")
 def toggle_asset(req: ToggleReq):
@@ -540,17 +569,6 @@ def reset_all():
     conn.commit()
     conn.close()
     return build_response("All valves reset to ON permanently!")
-
-@app.post("/api/load-default")
-def load_default():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM assets")
-    cursor.execute("DELETE FROM pipelines")
-    seed_default_network(cursor)
-    conn.commit()
-    conn.close()
-    return build_response("Default network loaded!")
 
 @app.post("/api/upload-excel")
 async def upload_excel(file: UploadFile = File(...)):
@@ -584,7 +602,8 @@ def parse_kml_coordinates(coord_text: str):
 async def upload_kmz(file: UploadFile = File(...)):
     try:
         raw = await file.read()
-        fname = (file.filename or "").lower()
+        orig_filename = (file.filename or "KMZ_File").strip()
+        fname = orig_filename.lower()
         kml_bytes = None
         if fname.endswith(".kmz") or zipfile.is_zipfile(io.BytesIO(raw)):
             with zipfile.ZipFile(io.BytesIO(raw), "r") as z:
@@ -615,23 +634,47 @@ async def upload_kmz(file: UploadFile = File(...)):
                             if sub.tag.endswith("coordinates") and sub.text:
                                 pts = parse_kml_coordinates(sub.text)
                                 if len(pts) >= 2:
-                                    overlays.append((pm_name, "line", json.dumps(pts)))
+                                    overlays.append((orig_filename, pm_name, "line", json.dumps(pts)))
                     elif elem.tag.endswith("Point"):
                         for sub in elem.iter():
                             if sub.tag.endswith("coordinates") and sub.text:
                                 pts = parse_kml_coordinates(sub.text)
                                 if len(pts) == 1:
-                                    overlays.append((pm_name, "point", json.dumps(pts[0])))
+                                    overlays.append((orig_filename, pm_name, "point", json.dumps(pts[0])))
 
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM kmz_overlays")
-        cursor.executemany("INSERT INTO kmz_overlays (name, geom_type, coords_json) VALUES (?,?,?)", overlays)
+        # Remove old layers from same filename if re-uploaded, keep other valid files
+        cursor.execute("DELETE FROM kmz_overlays WHERE file_name = ?", (orig_filename,))
+        cursor.executemany("INSERT INTO kmz_overlays (file_name, name, geom_type, coords_json) VALUES (?,?,?,?)", overlays)
         conn.commit()
         conn.close()
-        return build_response(f"KMZ/KML Imported Successfully! ({len(overlays)} Map Lines/Points plotted)")
+        return build_response(f"'{orig_filename}' Imported ({len(overlays)} Map Lines/Points added)!")
     except Exception as e:
         return {"success": False, "message": f"KMZ Parse Error: {str(e)}"}
+
+@app.post("/api/kmz/delete")
+def delete_kmz_item(req: KmzDeleteReq):
+    conn = get_db()
+    cursor = conn.cursor()
+    if req.file_name:
+        cursor.execute("DELETE FROM kmz_overlays WHERE file_name = ?", (req.file_name,))
+        msg = f"KMZ File '{req.file_name}' deleted!"
+    else:
+        cursor.execute("DELETE FROM kmz_overlays WHERE id = ?", (req.id,))
+        msg = "KMZ Layer deleted!"
+    conn.commit()
+    conn.close()
+    return build_response(msg)
+
+@app.post("/api/kmz/clear")
+def clear_all_kmz():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM kmz_overlays")
+    conn.commit()
+    conn.close()
+    return build_response("All KMZ files & map lines deleted!")
 
 @app.get("/api/export-excel")
 def export_excel():
