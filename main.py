@@ -1,6 +1,9 @@
 import os
 import io
+import json
+import zipfile
 import sqlite3
+import xml.etree.ElementTree as ET
 from datetime import datetime
 import openpyxl
 from typing import Dict, List, Any
@@ -9,7 +12,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 import networkx as nx
 
-app = FastAPI(title="BGL Gas SCADA Engine v5.0")
+app = FastAPI(title="BGL Gas SCADA Engine v6.1")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_HTML = os.path.join(BASE_DIR, "templates", "index.html")
@@ -148,6 +151,28 @@ def init_db():
             PRIMARY KEY (source_id, target_id)
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password TEXT,
+            role TEXT DEFAULT 'user'
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS kmz_overlays (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            geom_type TEXT,
+            coords_json TEXT
+        )
+    """)
+
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("INSERT INTO users VALUES ('admin', 'admin123', 'admin')")
+        cursor.execute("INSERT INTO users VALUES ('user', 'user123', 'user')")
+        conn.commit()
+
     cursor.execute("PRAGMA table_info(assets)")
     cols = [r[1] for r in cursor.fetchall()]
     if "created_at" not in cols or "pressure" not in cols:
@@ -165,6 +190,18 @@ def init_db():
     conn.close()
 
 init_db()
+
+class LoginReq(BaseModel):
+    username: str
+    password: str
+
+class UserSaveReq(BaseModel):
+    username: str
+    password: str
+    role: str = "user"
+
+class UserDeleteReq(BaseModel):
+    username: str
 
 class ToggleReq(BaseModel):
     asset_id: str
@@ -198,6 +235,7 @@ class PipelineReq(BaseModel):
 class BackupRestoreReq(BaseModel):
     assets: Dict[str, Any]
     pipelines: List[List[str]]
+    kmz_overlays: List[Dict[str, Any]] = []
 
 def is_upstream_node(nid: str, assets: dict) -> bool:
     u = nid.strip().upper()
@@ -215,6 +253,8 @@ def load_network_from_db(overrides: Dict[str, str] = None):
     assets = {row["id"]: dict(row) for row in cursor.fetchall()}
     cursor.execute("SELECT source_id, target_id FROM pipelines")
     pipelines = [(row["source_id"], row["target_id"]) for row in cursor.fetchall()]
+    cursor.execute("SELECT name, geom_type, coords_json FROM kmz_overlays")
+    kmz_list = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
     if overrides:
@@ -230,10 +270,10 @@ def load_network_from_db(overrides: Dict[str, str] = None):
         if u in G and v in G and not is_upstream_node(u, assets) and not is_upstream_node(v, assets):
             G.add_edge(u, v)
 
-    return assets, pipelines, G
+    return assets, pipelines, kmz_list, G
 
 def run_scada_bfs_flow(overrides: Dict[str, str] = None):
-    assets, pipelines, G = load_network_from_db(overrides)
+    assets, pipelines, kmz_list, G = load_network_from_db(overrides)
 
     active_drs = [
         k for k, v in assets.items()
@@ -243,11 +283,17 @@ def run_scada_bfs_flow(overrides: Dict[str, str] = None):
 
     gas_supply = {node: False for node in assets}
     fed_by = {}
+    flow_rank = {}
+    step_counter = 1
 
     for drs in active_drs:
         press = float(assets[drs].get("pressure") or 4.0)
         gas_supply[drs] = True
         fed_by[drs] = {"id": drs, "pressure": press}
+        if drs not in flow_rank:
+            flow_rank[drs] = step_counter
+            step_counter += 1
+
         q = [drs]
         visited = {drs}
 
@@ -255,32 +301,37 @@ def run_scada_bfs_flow(overrides: Dict[str, str] = None):
             curr = q.pop(0)
             c_type = str(assets.get(curr, {}).get("type", "")).upper()
             c_stat = str(assets.get(curr, {}).get("status", "ON")).upper()
+
+            # ONLY closed Valves stop flow.
+            # If a DRS station is OFF, its common header manifold STILL allows back-fed loop gas to flow into its other lines!
             if ("VALVE" in c_type or c_type == "VC") and c_stat == "OFF":
                 continue
 
             if curr in G:
                 for nbr in G.neighbors(curr):
                     if nbr not in visited:
-                        # Do not flow through another DRS station box
-                        if str(assets.get(nbr, {}).get("type", "")).upper() == "DRS":
-                            continue
                         visited.add(nbr)
                         gas_supply[nbr] = True
                         if nbr not in fed_by:
                             fed_by[nbr] = fed_by[curr]
+                        if nbr not in flow_rank:
+                            flow_rank[nbr] = step_counter
+                            step_counter += 1
                         q.append(nbr)
 
-    return assets, pipelines, gas_supply, fed_by
+    return assets, pipelines, kmz_list, gas_supply, fed_by, flow_rank
 
 def build_response(msg="", overrides: Dict[str, str] = None):
-    assets, pipelines, supply, fed_by = run_scada_bfs_flow(overrides)
+    assets, pipelines, kmz_list, supply, fed_by, flow_rank = run_scada_bfs_flow(overrides)
     return {
         "success": True,
         "message": msg,
         "assets": assets,
         "pipelines": pipelines,
+        "kmz_overlays": kmz_list,
         "supply": supply,
-        "fed_by": fed_by
+        "fed_by": fed_by,
+        "flow_rank": flow_rank
     }
 
 @app.get("/")
@@ -289,11 +340,69 @@ def index():
         return FileResponse(INDEX_HTML, media_type="text/html")
     return {"error": "index.html not found"}
 
+@app.post("/api/login")
+def api_login(req: LoginReq):
+    u = req.username.strip()
+    p = req.password.strip()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, role FROM users WHERE LOWER(username) = LOWER(?) AND password = ?", (u, p))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {"success": True, "username": row["username"], "role": row["role"]}
+    return {"success": False, "message": "Invalid Login ID leda Password!"}
+
+@app.get("/api/users")
+def list_users():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, role FROM users ORDER BY role, username")
+    users = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    return {"success": True, "users": users}
+
+@app.post("/api/users/save")
+def save_user(req: UserSaveReq):
+    u = req.username.strip()
+    p = req.password.strip()
+    r = req.role.strip().lower()
+    if not u or not p:
+        return {"success": False, "message": "Username mariyu Password tappanisari!"}
+    if r not in ["admin", "user"]:
+        r = "user"
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR REPLACE INTO users (username, password, role) VALUES (?, ?, ?)", (u, p, r))
+    conn.commit()
+    cursor.execute("SELECT username, role FROM users ORDER BY role, username")
+    users = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return {"success": True, "message": f"Login ID '{u}' ({r.upper()}) saved!", "users": users}
+
+@app.post("/api/users/delete")
+def delete_user(req: UserDeleteReq):
+    u = req.username.strip()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+    admin_count = cursor.fetchone()[0]
+    cursor.execute("SELECT role FROM users WHERE username = ?", (u,))
+    target = cursor.fetchone()
+    if target and target["role"] == "admin" and admin_count <= 1:
+        conn.close()
+        return {"success": False, "message": "Kaneesam okka Admin ID aina undali!"}
+    cursor.execute("DELETE FROM users WHERE username = ?", (u,))
+    conn.commit()
+    cursor.execute("SELECT username, role FROM users ORDER BY role, username")
+    users = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return {"success": True, "message": f"Login ID '{u}' deleted!", "users": users}
+
 @app.get("/api/snapshot")
 def get_snapshot():
     return build_response()
 
-# USER SIMULATION ENDPOINT (Does NOT overwrite permanent Admin DB)
 @app.post("/api/simulate")
 def simulate_flow(req: SimulateReq):
     return build_response("Simulation updated", req.overrides)
@@ -329,6 +438,11 @@ def restore_backup(req: BackupRestoreReq):
         if len(pair) >= 2 and pair[0] and pair[1]:
             p_rows.append((str(pair[0]), str(pair[1]), now))
     cursor.executemany("INSERT OR IGNORE INTO pipelines VALUES (?,?,?)", p_rows)
+
+    if req.kmz_overlays:
+        cursor.execute("DELETE FROM kmz_overlays")
+        k_rows = [(k.get("name", ""), k.get("geom_type", "line"), k.get("coords_json", "[]")) for k in req.kmz_overlays]
+        cursor.executemany("INSERT INTO kmz_overlays (name, geom_type, coords_json) VALUES (?,?,?)", k_rows)
 
     conn.commit()
     conn.close()
@@ -400,7 +514,6 @@ def delete_pipeline(req: PipelineReq):
     conn.close()
     return build_response("Link removed permanently!")
 
-# ADMIN PERMANENT TOGGLE
 @app.post("/api/toggle")
 def toggle_asset(req: ToggleReq):
     conn = get_db()
@@ -453,6 +566,72 @@ async def upload_excel(file: UploadFile = File(...)):
         return build_response(f"Excel Imported & Saved Permanently: {asset_count} Assets, {link_count} Links!")
     except Exception as e:
         return {"success": False, "message": f"Excel Read Error: {str(e)}"}
+
+def parse_kml_coordinates(coord_text: str):
+    pts = []
+    for token in (coord_text or "").strip().split():
+        parts = token.split(",")
+        if len(parts) >= 2:
+            try:
+                lng = float(parts[0])
+                lat = float(parts[1])
+                pts.append([lat, lng])
+            except:
+                pass
+    return pts
+
+@app.post("/api/upload-kmz")
+async def upload_kmz(file: UploadFile = File(...)):
+    try:
+        raw = await file.read()
+        fname = (file.filename or "").lower()
+        kml_bytes = None
+        if fname.endswith(".kmz") or zipfile.is_zipfile(io.BytesIO(raw)):
+            with zipfile.ZipFile(io.BytesIO(raw), "r") as z:
+                for name in z.namelist():
+                    if name.lower().endswith(".kml"):
+                        kml_bytes = z.read(name)
+                        break
+        else:
+            kml_bytes = raw
+
+        if not kml_bytes:
+            return {"success": False, "message": "KMZ/KML file lo valid KML data kanipinchaledhu!"}
+
+        root = ET.fromstring(kml_bytes)
+        overlays = []
+
+        for pm in root.iter():
+            if pm.tag.endswith("Placemark"):
+                pm_name = "Pipeline"
+                for child in pm:
+                    if child.tag.endswith("name") and child.text:
+                        pm_name = child.text.strip()
+                        break
+
+                for elem in pm.iter():
+                    if elem.tag.endswith("LineString") or elem.tag.endswith("LinearRing"):
+                        for sub in elem.iter():
+                            if sub.tag.endswith("coordinates") and sub.text:
+                                pts = parse_kml_coordinates(sub.text)
+                                if len(pts) >= 2:
+                                    overlays.append((pm_name, "line", json.dumps(pts)))
+                    elif elem.tag.endswith("Point"):
+                        for sub in elem.iter():
+                            if sub.tag.endswith("coordinates") and sub.text:
+                                pts = parse_kml_coordinates(sub.text)
+                                if len(pts) == 1:
+                                    overlays.append((pm_name, "point", json.dumps(pts[0])))
+
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM kmz_overlays")
+        cursor.executemany("INSERT INTO kmz_overlays (name, geom_type, coords_json) VALUES (?,?,?)", overlays)
+        conn.commit()
+        conn.close()
+        return build_response(f"KMZ/KML Imported Successfully! ({len(overlays)} Map Lines/Points plotted)")
+    except Exception as e:
+        return {"success": False, "message": f"KMZ Parse Error: {str(e)}"}
 
 @app.get("/api/export-excel")
 def export_excel():
