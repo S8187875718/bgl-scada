@@ -23,8 +23,8 @@ def seed_default_network(cursor):
     now = datetime.now().strftime("%Y-%m-%d")
     default_assets = [
         ("D01", "MS DRS", "DRS", "125 MM", "4.1 Bar", now, now, "ON", "Shamirpet, Hyderabad", 4.1),
-        ("D03", "Check Post DRS", "DRS", "125 MM", "3.6 Bar", now, now, "ON", "Check Post, Hyderabad", 3.6),
-        ("D02", "Depo DRS", "DRS", "125 MM", "3.1 Bar", now, now, "ON", "Medchal, Hyderabad", 3.1),
+        ("D03", "Check Post DRS", "DRS", "125 MM", "3.6 Bar", now, now, "ON", "Medchal Check Post, Hyderabad", 3.6),
+        ("D02", "Depo DRS", "DRS", "125 MM", "3.1 Bar", now, now, "ON", "Medchal Depo, Hyderabad", 3.1),
         ("D01-DIR-01", "Registrar, Nalsar Univ.", "CPNG", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
         ("CG-D01-PE01", "CG-D01-PE01", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
         ("CG-D01-PE02", "CG-D01-PE02", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
@@ -66,6 +66,16 @@ def init_db():
             PRIMARY KEY (source_id, target_id)
         )
     """)
+    cursor.execute("PRAGMA table_info(assets)")
+    cols = [r[1] for r in cursor.fetchall()]
+    if "created_at" not in cols or "pressure" not in cols:
+        cursor.execute("DROP TABLE IF EXISTS assets")
+        cursor.execute("DROP TABLE IF EXISTS pipelines")
+        conn.commit()
+        conn.close()
+        init_db()
+        return
+
     cursor.execute("SELECT COUNT(*) FROM assets")
     if cursor.fetchone()[0] == 0:
         seed_default_network(cursor)
@@ -294,10 +304,13 @@ def load_default():
 
 @app.post("/api/upload-excel")
 async def upload_excel(file: UploadFile = File(...)):
-    contents = await file.read()
-    wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
-    now = datetime.now().strftime("%Y-%m-%d")
+    try:
+        contents = await file.read()
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+    except Exception as e:
+        return {"success": False, "message": f"Excel Read Error: {str(e)}"}
 
+    now = datetime.now().strftime("%Y-%m-%d")
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM assets")
@@ -317,15 +330,22 @@ async def upload_excel(file: UploadFile = File(...)):
         col_map = {name: idx for idx, name in enumerate(headers) if name}
         rows = []
         for row in assets_sheet.iter_rows(min_row=2, values_only=True):
-            if not row or not row[col_map.get("Asset ID", 0)]:
+            if not row or len(row) == 0:
                 continue
-            aid = str(row[col_map.get("Asset ID", 0)]).strip()
+            raw_id = row[col_map.get("Asset ID", 0)]
+            if raw_id is None or str(raw_id).strip() == "":
+                continue
+            aid = str(raw_id).strip()
             name = str(row[col_map.get("Asset Name", 1)] or aid).strip()
             atype = str(row[col_map.get("Type", 2)] or "VALVE").strip().upper()
             tag = str(row[col_map.get("Tag", 3)] or "125 MM").strip()
-            details = str(row[col_map.get("Details", 4)] or "").strip()
-            status = str(row[col_map.get("Status", 7)] or "ON").strip().upper()
+            details = str(row[col_map.get("Details", 4)] or "").strip() if len(row) > 4 else ""
+            status = str(row[col_map.get("Status", 7)] or "ON").strip().upper() if len(row) > 7 else "ON"
+            if status not in ["ON", "OFF"]:
+                status = "ON"
             loc = str(row[col_map.get("Location", 8)] or "").strip() if len(row) > 8 else ""
+            if loc == "None":
+                loc = ""
 
             press = 4.0 if atype == "DRS" else 0.0
             if atype == "DRS" and "bar" in details.lower():
@@ -353,8 +373,9 @@ async def upload_excel(file: UploadFile = File(...)):
         for row in links_sheet.iter_rows(min_row=2, values_only=True):
             if not row or len(row) < 2:
                 continue
-            src, tgt = str(row[p_idx] or "").strip(), str(row[c_idx] or "").strip()
-            if src and tgt and src != tgt:
+            src = str(row[p_idx] or "").strip() if row[p_idx] is not None else ""
+            tgt = str(row[c_idx] or "").strip() if row[c_idx] is not None else ""
+            if src and tgt and src != tgt and src != "None" and tgt != "None":
                 links.append((src, tgt, now))
         cursor.executemany("INSERT OR IGNORE INTO pipelines VALUES (?,?,?)", links)
         link_count = len(links)

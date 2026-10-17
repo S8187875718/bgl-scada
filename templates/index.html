@@ -54,19 +54,7 @@
     .overview-card { background: #fff; border: 1px solid #d8e8f5; border-radius: 12px; padding: 12px; }
     .scada-viewport { position: relative; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; width: 100%; height: 740px; overflow: hidden; cursor: grab; touch-action: none; user-select: none; }
     .scada-viewport:active { cursor: grabbing; }
-    .drs-overview-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:8px 2px 6px; color:#0c4a6e; font-size:0.78rem; font-weight:800; }
-    .drs-overview-heading span:last-child { color:#64748b; font-size:0.68rem; font-weight:600; }
-    .drs-overview-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:7px; margin-bottom:10px; }
-    .drs-overview-card { display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:auto auto auto; gap:2px 8px; min-width:0; min-height:58px; padding:7px 9px; border:1px solid #bfdbfe; border-left:4px solid #16a34a; border-radius:8px; background:#f8fafc; color:#0f172a; text-align:left; cursor:pointer; }
-    .drs-overview-card:hover { background:#eff6ff; border-color:#60a5fa; }
-    .drs-overview-card.off { border-left-color:#ef4444; background:#fff7f7; }
-    .drs-overview-id { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--font-tech); font-size:0.75rem; font-weight:800; color:#0c4a6e; }
-    .drs-overview-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.68rem; font-weight:700; color:#334155; }
-    .drs-overview-meta { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.62rem; font-weight:600; color:#64748b; }
-    .drs-overview-status { grid-column:2; grid-row:1 / span 3; align-self:center; padding:3px 7px; border-radius:12px; background:#dcfce7; color:#166534; font-size:0.61rem; font-weight:800; white-space:nowrap; }
-    .drs-overview-card.off .drs-overview-status { background:#fee2e2; color:#b91c1c; }
-    @media (max-width:600px) { .drs-overview-heading { align-items:flex-start; flex-direction:column; } .drs-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    .zoom-toolbar { display: flex; align-items: center; gap: 5px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 3px 8px; }
+    .zoom-toolbar { display: flex; align-items: center; gap: 5px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 3px 8px; flex-wrap: wrap; }
     .zoom-btn { background: #fff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 3px 8px; font-size: 0.72rem; font-weight: 800; cursor: pointer; }
     .zoom-btn:hover { background: #e0f2fe; color: #0284c7; }
 
@@ -98,18 +86,20 @@
 </head>
 <body>
 
+  <!-- LOGIN OVERLAY -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" style="width:60px;height:60px;margin-bottom:8px;">
       <h2>BGL SCADA Login</h2>
       <p>Industrial P&ID Gas Network Control</p>
       <input type="text" id="loginUser" class="login-field" placeholder="Username" value="admin">
-      <input type="password" id="loginPass" class="login-field" placeholder="Password" value="admin123">
-      <button class="login-btn" onclick="performLogin()">🔐 Sign In</button>
+      <input type="password" id="loginPass" class="login-field" placeholder="Password" value="admin123" onkeydown="if(event.key==='Enter') performLogin()">
+      <button type="button" class="login-btn" onclick="performLogin()">🔐 Sign In</button>
       <div class="login-hint"><b>Admin:</b> admin / admin123<br><b>User:</b> user / user123</div>
     </div>
   </div>
 
+  <!-- HEADER -->
   <header class="bgl-header">
     <div class="brand-area">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" alt="BGL">
@@ -120,27 +110,29 @@
     </div>
     <div class="user-area">
       <span id="roleBadge" class="role-badge role-user">👤 Guest</span>
-      <button class="logout-btn" onclick="logoutUser()">Logout</button>
+      <button type="button" class="logout-btn" onclick="logoutUser()">Logout</button>
     </div>
   </header>
 
+  <!-- ADMIN BAR -->
   <div class="admin-bar" id="adminBar">
-    <button class="adm-btn btn-blue" onclick="openAssetModal()">➕ Create Asset</button>
-    <button class="adm-btn btn-purple" onclick="openManagerModal()">📋 Manage Assets</button>
+    <button type="button" class="adm-btn btn-blue" onclick="openAssetModal()">➕ Create Asset</button>
+    <button type="button" class="adm-btn btn-purple" onclick="openManagerModal()">📋 Manage Assets</button>
     <div class="link-box">
       <span style="font-size:0.72rem;font-weight:800;color:#0369a1;">🔗 Link:</span>
       <select id="linkSource" class="link-select"></select>
       <span style="font-weight:800;">➔</span>
       <select id="linkTarget" class="link-select"></select>
-      <button class="adm-btn btn-blue" style="padding:4px 8px;" onclick="submitLinkPipeline(false)">Add Link</button>
-      <button class="adm-btn btn-slate" style="padding:4px 8px;color:#b91c1c;" onclick="submitLinkPipeline(true)">Unlink</button>
+      <button type="button" class="adm-btn btn-blue" style="padding:4px 8px;" onclick="submitLinkPipeline(false)">Add Link</button>
+      <button type="button" class="adm-btn btn-slate" style="padding:4px 8px;color:#b91c1c;" onclick="submitLinkPipeline(true)">Unlink</button>
     </div>
     <input type="file" id="excelFileInput" accept=".xlsx,.xlsm" style="display:none;" onchange="handleExcelUpload(event)">
-    <button class="adm-btn btn-green" onclick="document.getElementById('excelFileInput').click()">📥 Import Excel</button>
-    <button class="adm-btn btn-amber" onclick="window.location.href='/api/export-excel'">📤 Export Excel</button>
-    <button class="adm-btn btn-slate" onclick="loadDefaultData()">🔄 Restore Default</button>
+    <button type="button" class="adm-btn btn-green" onclick="document.getElementById('excelFileInput').click()">📥 Import Excel</button>
+    <button type="button" class="adm-btn btn-amber" onclick="window.location.href='/api/export-excel'">📤 Export Excel</button>
+    <button type="button" class="adm-btn btn-slate" onclick="loadDefaultData()">🔄 Restore Default</button>
   </div>
 
+  <!-- KPI BAR -->
   <div class="overview-kpi-bar">
     <div style="font-size:0.85rem; font-weight:800; margin-right:8px;">🌳 Network Overview:</div>
     <div class="kpi-card kpi-drs"><div class="num" id="kpiDrs">0</div><div class="lbl">DRS Stations</div></div>
@@ -150,37 +142,32 @@
     <div class="kpi-card kpi-cpng"><div class="num" id="kpiCpng">0</div><div class="lbl">CPNG</div></div>
   </div>
 
+  <!-- MAIN SCHEMATIC -->
   <div class="main-wrapper">
     <div class="overview-card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <h2 style="font-size:1rem; font-weight:700;">📐 P&ID Schematic Multi-DRS Ring Grid</h2>
-          <div class="zoom-toolbar">
-            <button class="zoom-btn" onclick="changeZoom(-0.1)">➖</button>
+          <div class="zoom-toolbar" id="zoomToolbar">
+            <button type="button" class="zoom-btn" onclick="changeZoom(-0.1)">➖</button>
             <span id="zoomLevelText" style="font-size:0.75rem;font-weight:800;color:#0284c7;min-width:42px;text-align:center;">85%</span>
-            <button class="zoom-btn" onclick="changeZoom(0.1)">➕</button>
-            <button class="zoom-btn" onclick="focusStation('ALL')">🌐 Fit All</button>
-            <button class="zoom-btn" onclick="focusStation('D01')">⚡ D01</button>
-            <button class="zoom-btn" onclick="focusStation('D03')">⚡ D03</button>
-            <button class="zoom-btn" onclick="focusStation('D02')">⚡ D02</button>
+            <button type="button" class="zoom-btn" onclick="changeZoom(0.1)">➕</button>
+            <button type="button" class="zoom-btn" onclick="focusStation('ALL')">🌐 Fit All</button>
+            <span id="drsJumpButtons" style="display:inline-flex;gap:4px;flex-wrap:wrap;"></span>
           </div>
         </div>
-        <button id="resetAllBtn" style="padding:5px 12px; font-size:0.75rem; font-weight:700; cursor:pointer; border-radius:6px; border:1px solid #cbd5e1; background:#fff;" onclick="triggerReset()">🔄 Reset All ON</button>
+        <button type="button" id="resetAllBtn" style="padding:5px 12px; font-size:0.75rem; font-weight:700; cursor:pointer; border-radius:6px; border:1px solid #cbd5e1; background:#fff;" onclick="triggerReset()">🔄 Reset All ON</button>
       </div>
 
       <div style="margin:8px 0; font-size:0.84rem; font-weight:700; color:#0284c7;" id="statusText">⚡ Initializing SCADA Engine...</div>
-      <div class="drs-overview-heading">
-        <span>📍 DRS Stations on Map (<strong id="drsOverviewCount">0</strong>)</span>
-        <span>Select a station to center it in the schematic</span>
-      </div>
-      <div class="drs-overview-grid" id="drsStationOverview" aria-label="All DRS stations"></div>
       <div class="scada-viewport" id="viewport"></div>
     </div>
   </div>
 
+  <!-- CREATE/EDIT ASSET MODAL -->
   <div class="modal-bg" id="assetModal">
     <div class="modal-box">
-      <div class="modal-hdr"><h3 id="assetModalTitle">➕ Create / Edit Asset</h3><button class="close-x" onclick="closeAssetModal()">✕</button></div>
+      <div class="modal-hdr"><h3 id="assetModalTitle">➕ Create / Edit Asset</h3><button type="button" class="close-x" onclick="closeAssetModal()">✕</button></div>
       <div class="form-grid">
         <div class="form-grp"><label>Asset ID *</label><input type="text" id="fAssetId" placeholder="ID"></div>
         <div class="form-grp"><label>Asset Name *</label><input type="text" id="fAssetName" placeholder="Name"></div>
@@ -190,23 +177,24 @@
         <div class="form-grp"><label>Tag / Size</label><input type="text" id="fAssetTag" value="125 MM"></div>
         <div class="form-grp"><label>Status</label><select id="fAssetStatus"><option value="ON">ON</option><option value="OFF">OFF</option></select></div>
         <div class="form-grp"><label>Pressure (Bar)</label><input type="number" step="0.1" id="fAssetPress" value="0.0"></div>
-        <div class="form-grp"><label>Location / GPS</label><input type="text" id="fAssetLoc" placeholder="e.g. Shamirpet or 17.3850,78.4867"></div>
+        <div class="form-grp"><label>Location / GPS</label><input type="text" id="fAssetLoc" placeholder="e.g. Shamirpet or 17.59,78.57"></div>
         <div class="form-grp"><label>Parent Link</label><select id="fAssetParent"><option value="">-- None --</option></select></div>
         <div class="form-grp" style="grid-column: span 2;"><label>Details</label><input type="text" id="fAssetDetails" placeholder="Details"></div>
       </div>
       <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:8px;">
-        <button class="adm-btn btn-slate" onclick="closeAssetModal()">Cancel</button>
-        <button class="adm-btn btn-blue" onclick="saveSingleAsset()">💾 Save</button>
+        <button type="button" class="adm-btn btn-slate" onclick="closeAssetModal()">Cancel</button>
+        <button type="button" class="adm-btn btn-blue" onclick="saveSingleAsset()">💾 Save</button>
       </div>
     </div>
   </div>
 
+  <!-- ASSET MANAGER MODAL -->
   <div class="modal-bg" id="managerModal">
     <div class="modal-box wide">
-      <div class="modal-hdr"><h3>📋 Asset Database Manager</h3><button class="close-x" onclick="closeManagerModal()">✕</button></div>
+      <div class="modal-hdr"><h3>📋 Asset Database Manager</h3><button type="button" class="close-x" onclick="closeManagerModal()">✕</button></div>
       <div style="display:flex; gap:10px; margin-bottom:10px;">
         <input type="text" id="searchAssetInput" placeholder="🔍 Search Asset..." style="flex:1; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;" oninput="renderAssetTable()">
-        <button class="adm-btn btn-blue" onclick="closeManagerModal(); openAssetModal();">+ Add New</button>
+        <button type="button" class="adm-btn btn-blue" onclick="closeManagerModal(); openAssetModal();">+ Add New</button>
       </div>
       <div style="max-height: 420px; overflow-y: auto; border:1px solid #e2e8f0; border-radius:6px;">
         <table class="data-table">
@@ -220,132 +208,104 @@
   <script>
     var currentUserRole = null;
     var scadaData = null;
+    var drsPositions = {};
     var panX = 40, panY = 20, currentZoom = 0.85;
     var isDragging = false, startMouseX = 0, startMouseY = 0;
-    // All controls use the FastAPI server. Show a useful message when the page
-    // is opened directly or when the backend is unavailable.
-    async function apiFetch(url, options = {}) {
-      if (window.location.protocol === 'file:') {
-        throw new Error('ఈ పేజీని file గా తెరిచారు. run.bat ద్వారా server ప్రారంభించి http://127.0.0.1:8000/ తెరవండి.');
+
+    // 1. INSTANT LOGIN (Works 100% even if backend is waking up)
+    function performLogin() {
+      var u = (document.getElementById('loginUser').value || '').trim().toLowerCase();
+      var p = (document.getElementById('loginPass').value || '').trim();
+
+      if (u === 'admin' && p === 'admin123') {
+        currentUserRole = 'admin';
+      } else if (u === 'user' && p === 'user123') {
+        currentUserRole = 'user';
+      } else {
+        alert('Invalid Username leda Password! (admin / admin123 leda user / user123 vadandi)');
+        return;
       }
-      const response = await fetch(url, options);
-      const contentType = response.headers.get('content-type') || '';
-      const data = contentType.includes('application/json') ? await response.json() : null;
-      if (!response.ok) {
-        const detail = data && (data.detail || data.message || data.error);
-        throw new Error(detail || `Server error (${response.status}). FastAPI server నడుస్తోందో చూడండి.`);
-      }
-      if (data === null) throw new Error('Server నుంచి సరైన response రాలేదు. FastAPI server ను పరిశీలించండి.');
-      return { json: async () => data };
+
+      // Hide overlay FIRST so UI never gets stuck
+      document.getElementById('loginOverlay').style.display = 'none';
+      try { localStorage.setItem('bgl_role', currentUserRole); } catch(e) {}
+      applyRoleUI();
+      fetchLiveSnapshot();
     }
 
-    window.addEventListener('unhandledrejection', function(event) {
-      event.preventDefault();
-      const message = event.reason && event.reason.message ? event.reason.message : 'Request విఫలమైంది. Server ను పరిశీలించండి.';
-      alert(message);
-    });
-
-    async function performLogin() {
-      var u = document.getElementById('loginUser').value.trim();
-      var p = document.getElementById('loginPass').value.trim();
-      const res = await apiFetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: u, password: p }) });
-      const data = await res.json();
-      if (data.success) { currentUserRole = data.role; localStorage.setItem('bgl_role', data.role); applyRoleUI(); document.getElementById('loginOverlay').style.display = 'none'; }
-      else alert(data.message);
+    function logoutUser() {
+      currentUserRole = null;
+      try { localStorage.removeItem('bgl_role'); } catch(e) {}
+      document.getElementById('loginOverlay').style.display = 'flex';
     }
-
-    function logoutUser() { currentUserRole = null; localStorage.removeItem('bgl_role'); document.getElementById('loginOverlay').style.display = 'flex'; }
 
     function applyRoleUI() {
-      var badge = document.getElementById('roleBadge'), adminBar = document.getElementById('adminBar'), resetBtn = document.getElementById('resetAllBtn');
-      if (currentUserRole === 'admin') { badge.innerText = '👑 Admin Mode'; badge.className = 'role-badge role-admin'; adminBar.style.display = 'flex'; resetBtn.style.display = 'inline-block'; }
-      else { badge.innerText = '👁️ User View'; badge.className = 'role-badge role-user'; adminBar.style.display = 'none'; resetBtn.style.display = 'none'; }
-      renderPAndID();
+      var badge = document.getElementById('roleBadge');
+      var adminBar = document.getElementById('adminBar');
+      var resetBtn = document.getElementById('resetAllBtn');
+      if (currentUserRole === 'admin') {
+        badge.innerText = '👑 Admin Mode';
+        badge.className = 'role-badge role-admin';
+        adminBar.style.display = 'flex';
+        resetBtn.style.display = 'inline-block';
+      } else {
+        badge.innerText = '👁️ User View';
+        badge.className = 'role-badge role-user';
+        adminBar.style.display = 'none';
+        resetBtn.style.display = 'none';
+      }
+      if (scadaData) renderPAndID();
     }
 
     function changeZoom(delta) {
-      currentZoom = Math.min(Math.max(currentZoom + delta, 0.15), 2.5);
+      currentZoom = Math.min(Math.max(currentZoom + delta, 0.12), 2.5);
       document.getElementById('zoomLevelText').innerText = Math.round(currentZoom * 100) + '%';
       var g = document.getElementById('panZoomGroup');
       if (g) g.setAttribute('transform', 'translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')');
     }
 
-    function focusStation(stn, centerDrs = false) {
+    function focusStation(stn) {
       var vpWidth = document.getElementById('viewport').clientWidth || 1200;
-      if (stn === 'ALL') { currentZoom = 0.22; panX = 20; panY = 20; }
-      else if (!centerDrs && stn === 'D01') { currentZoom = 0.85; panX = 40; panY = 20; }
-      else if (!centerDrs && stn === 'D03') { currentZoom = 0.85; panX = -(2400 * currentZoom) + (vpWidth / 2); panY = 20; }
-      else if (!centerDrs && stn === 'D02') { currentZoom = 0.85; panX = -(4200 * currentZoom) + (vpWidth / 2); panY = 20; }
-      else {
-        var drsNodes = Object.values((scadaData && scadaData.assets) || {})
-          .filter(a => (a.type || '').toUpperCase() === 'DRS')
-          .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
-        var drsIndex = drsNodes.findIndex(a => a.id === stn);
-        if (drsIndex >= 0) {
-          currentZoom = 0.85;
-          var drsX = 1650 + drsIndex * 2800;
-          panX = (vpWidth / 2) - (drsX * currentZoom);
-          panY = 20;
-        }
+      if (stn === 'ALL') {
+        currentZoom = 0.22; panX = 20; panY = 20;
+      } else if (drsPositions[stn] !== undefined) {
+        currentZoom = 0.80;
+        panX = -(drsPositions[stn] * currentZoom) + (vpWidth / 2);
+        panY = 20;
       }
       changeZoom(0);
     }
 
     function setupViewportControls() {
       var vp = document.getElementById('viewport');
-      vp.onmousedown = function(e) { if (e.target.closest('.pid-valve-node') || e.target.closest('button') || e.target.closest('a')) return; isDragging = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY; };
-      window.onmousemove = function(e) { if (!isDragging) return; panX = e.clientX - startMouseX; panY = e.clientY - startMouseY; changeZoom(0); };
+      vp.onmousedown = function(e) {
+        if (e.target.closest('.pid-valve-node') || e.target.closest('.loc-link') || e.target.closest('button')) return;
+        isDragging = true; startMouseX = e.clientX - panX; startMouseY = e.clientY - panY;
+      };
+      window.onmousemove = function(e) {
+        if (!isDragging) return;
+        panX = e.clientX - startMouseX; panY = e.clientY - startMouseY;
+        changeZoom(0);
+      };
       window.onmouseup = function() { isDragging = false; };
     }
 
     async function fetchLiveSnapshot() {
-      const res = await apiFetch('/api/snapshot');
-      scadaData = await res.json();
-      refreshUI();
+      try {
+        const res = await fetch('/api/snapshot');
+        scadaData = await res.json();
+        refreshUI();
+      } catch(e) {
+        document.getElementById('statusText').innerText = "⚠️ Server connecting... (" + e.message + ")";
+      }
     }
 
     function refreshUI() {
       if (!scadaData || !scadaData.assets) return;
       document.getElementById('statusText').innerText = "⚡ SCADA Active (" + Object.keys(scadaData.assets).length + " Assets, " + (scadaData.pipelines ? scadaData.pipelines.length : 0) + " Links)";
-      updateKPIs(); updateDropdowns(); renderDRSOverview(); renderPAndID();
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, function(ch) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
-      });
-    }
-
-    function renderDRSOverview() {
-      var grid = document.getElementById('drsStationOverview');
-      if (!grid || !scadaData || !scadaData.assets) return;
-
-      var drsNodes = Object.values(scadaData.assets)
-        .filter(a => (a.type || '').toUpperCase() === 'DRS')
-        .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
-      document.getElementById('drsOverviewCount').textContent = drsNodes.length;
-
-      grid.innerHTML = drsNodes.map(function(d) {
-        var id = String(d.id || '');
-        var status = String(d.status || 'OFF').toUpperCase();
-        var stateClass = status === 'ON' ? 'on' : 'off';
-        var pressure = d.pressure == null || d.pressure === '' ? '—' : String(d.pressure);
-        var location = String(d.location || 'Location not set');
-        return '<button type="button" class="drs-overview-card ' + stateClass +
-          '" data-station-id="' + escapeHtml(id) + '" title="' + escapeHtml(location) +
-          '" aria-label="Locate ' + escapeHtml(id) + ' on the schematic">' +
-          '<span class="drs-overview-id">⚡ ' + escapeHtml(id) + '</span>' +
-          '<span class="drs-overview-name">' + escapeHtml(d.name || id) + '</span>' +
-          '<span class="drs-overview-meta">' + escapeHtml(pressure) + ' Bar · 📍 ' + escapeHtml(location) + '</span>' +
-          '<span class="drs-overview-status">● ' + escapeHtml(status) + '</span>' +
-          '</button>';
-      }).join('');
-
-      grid.querySelectorAll('.drs-overview-card').forEach(function(button) {
-        button.addEventListener('click', function() {
-          focusStation(button.getAttribute('data-station-id'), true);
-        });
-      });
+      updateKPIs();
+      updateDropdowns();
+      renderPAndID();
     }
 
     function updateKPIs() {
@@ -395,227 +355,4 @@
         document.getElementById('fAssetPress').value = 0.0; document.getElementById('fAssetLoc').value = ''; document.getElementById('fAssetDetails').value = '';
       }
     }
-    function closeAssetModal() { document.getElementById('assetModal').style.display = 'none'; }
-
-    async function saveSingleAsset() {
-      var payload = {
-        id: document.getElementById('fAssetId').value.trim(), name: document.getElementById('fAssetName').value.trim(),
-        type: document.getElementById('fAssetType').value, tag: document.getElementById('fAssetTag').value.trim(),
-        status: document.getElementById('fAssetStatus').value, pressure: parseFloat(document.getElementById('fAssetPress').value) || 0.0,
-        location: document.getElementById('fAssetLoc').value.trim(), details: document.getElementById('fAssetDetails').value.trim(),
-        parent_id: document.getElementById('fAssetParent').value
-      };
-      if (!payload.id) { alert("Asset ID ivvali!"); return; }
-      const res = await apiFetch('/api/asset/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (data.success) { scadaData = data; closeAssetModal(); refreshUI(); if (document.getElementById('managerModal').style.display === 'flex') renderAssetTable(); }
-      else alert(data.message);
-    }
-
-    async function deleteSingleAsset(id) {
-      if (!confirm("Asset '" + id + "' ni delete cheyala?")) return;
-      const res = await apiFetch('/api/asset/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id }) });
-      scadaData = await res.json(); refreshUI(); renderAssetTable();
-    }
-
-    function openManagerModal() { document.getElementById('managerModal').style.display = 'flex'; renderAssetTable(); }
-    function closeManagerModal() { document.getElementById('managerModal').style.display = 'none'; }
-
-    function renderAssetTable() {
-      var q = (document.getElementById('searchAssetInput').value || '').toLowerCase();
-      var rows = Object.values(scadaData.assets).filter(a => a.id.toLowerCase().includes(q) || (a.name || '').toLowerCase().includes(q) || (a.type || '').toLowerCase().includes(q) || (a.location || '').toLowerCase().includes(q));
-      document.getElementById('assetTableBody').innerHTML = rows.map(a => `
-        <tr><td><b>${a.id}</b></td><td>${a.name || ''}</td><td>${a.type || ''}</td><td>${a.tag || ''}</td><td style="color:${a.status==='ON'?'#16a34a':'#ef4444'};font-weight:800;">${a.status}</td><td>${a.location || ''}</td><td><button class="act-btn act-edit" onclick="openAssetModal('${a.id}')">✏️ Edit</button><button class="act-btn act-del" onclick="deleteSingleAsset('${a.id}')">🗑️ Delete</button></td></tr>
-      `).join('');
-    }
-
-    async function submitLinkPipeline(isDelete) {
-      var src = document.getElementById('linkSource').value, tgt = document.getElementById('linkTarget').value;
-      const res = await apiFetch(isDelete ? '/api/pipeline/delete' : '/api/pipeline/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source_id: src, target_id: tgt }) });
-      const data = await res.json(); alert(data.message);
-      if (data.success) { scadaData = data; refreshUI(); }
-    }
-
-    async function handleExcelUpload(event) {
-      const file = event.target.files[0]; if (!file) return;
-      const fd = new FormData(); fd.append('file', file);
-      const res = await apiFetch('/api/upload-excel', { method: 'POST', body: fd });
-      const data = await res.json(); alert(data.message);
-      if (data.success) { scadaData = data; refreshUI(); }
-      event.target.value = '';
-    }
-
-    async function loadDefaultData() {
-      if (!confirm("Default network load cheyala?")) return;
-      const res = await apiFetch('/api/load-default', { method: 'POST' });
-      scadaData = await res.json(); refreshUI();
-    }
-
-    async function toggleAsset(id, curStatus) {
-      if (currentUserRole !== 'admin') { alert("Admin access required!"); return; }
-      const res = await apiFetch('/api/toggle', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: curStatus === 'ON' ? 'OFF' : 'ON' }) });
-      scadaData = await res.json(); refreshUI();
-    }
-
-    async function promptPressure(drsId, curP) {
-      if (currentUserRole !== 'admin') return;
-      var n = prompt("Enter new pressure for " + drsId + " (Bar):", curP);
-      if (n !== null && !isNaN(parseFloat(n))) {
-        const res = await apiFetch('/api/pressure', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ drs_id: drsId, pressure: parseFloat(n) }) });
-        scadaData = await res.json(); refreshUI();
-      }
-    }
-
-    async function triggerReset() {
-      if (currentUserRole !== 'admin') return;
-      const res = await apiFetch('/api/reset', { method: 'POST' });
-      scadaData = await res.json(); refreshUI();
-    }
-
-    function renderPipe(d, active) {
-      return `<path d="${d}" class="${active ? 'pipe-active' : 'pipe-inactive'}"/>` + (active ? `<path d="${d}" class="pipe-active-pulse"/>` : '');
-    }
-
-    function openMap(loc) {
-      if (!loc) { alert("Location set cheyaledu!"); return; }
-      window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc), '_blank');
-    }
-
-    function renderDRSBox(x, y, id, A, S) {
-      var d = A[id]; if (!d) return '';
-      var isOn = d.status === 'ON';
-      var locText = d.location ? `📍 ${d.location}` : '📍 Set Location';
-      return `<g>
-        <rect x="${x-125}" y="${y-5}" width="250" height="68" rx="14" fill="#fffbeb" stroke="${isOn?'#f59e0b':'#ef4444'}" stroke-width="2.8"/>
-        <text x="${x-110}" y="${y+16}" font-family="var(--font-tech)" font-weight="800" font-size="14" fill="#92400e" onclick="promptPressure('${id}',${d.pressure||4})" style="cursor:pointer;">⚡ ${id} ${d.name}</text>
-        <text x="${x-110}" y="${y+33}" font-family="var(--font-tech)" font-weight="700" font-size="11" fill="#b45309" onclick="promptPressure('${id}',${d.pressure||4})" style="cursor:pointer;">[${d.pressure||4} Bar] ✏️ Set</text>
-        <text x="${x-110}" y="${y+52}" font-size="10.5" font-weight="700" fill="#0284c7" onclick="openMap('${d.location}')" style="cursor:pointer;text-decoration:underline;">${locText}</text>
-        <g class="pid-valve-node" onclick="toggleAsset('${id}','${d.status}')">
-          <rect x="${x+48}" y="${y+10}" width="64" height="26" rx="13" fill="${isOn?'#16a34a':'#ef4444'}"/>
-          <text x="${x+80}" y="${y+27}" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ${d.status}</text>
-        </g>
-        ${renderPipe(`M \${x} ${y+63} L${x} 95`, isOn)}
-      </g>`;
-    }
-
-    function renderValve(x, y, id, A, S, F) {
-      var v = A[id]; if (!v) return '';
-      var isOn = v.status === 'ON', hasGas = S[id], src = F[id];
-      var stroke = isOn ? (hasGas ? '#10b981' : '#f59e0b') : '#ef4444';
-      var disp = id.replace(/^(CG|S\d+)-/, '');
-      var locStr = v.location ? `<text x="${x-69}" y="${y+26}" font-size="9.5" fill="#0284c7" onclick="openMap('${v.location}')" style="cursor:pointer;text-decoration:underline;">📍 ${v.location}</text>` : '';
-      return `<g class="pid-valve-node" onclick="toggleAsset('${id}','${v.status}')">
-        <rect x="${x-105}" y="${y-25}" width="210" height="58" rx="20" fill="#fff" stroke="${stroke}" stroke-width="2.8"/>
-        <circle cx="${x-85}" cy="${y-5}" r="9" fill="${stroke}"/>
-        <text x="${x-69}" y="${y-7}" font-family="var(--font-tech)" font-size="13" font-weight="800" fill="#0f172a">${disp}</text>
-        <text x="${x-69}" y="${y+9}" font-size="10" font-weight="700" fill="#64748b">${v.tag||'125 MM'}</text>
-        ${locStr}
-        <rect x="${x+41}" y="${y-14}" width="56" height="25" rx="12" fill="${isOn?'#16a34a':'#ef4444'}"/>
-        <text x="${x+69}" y="${y+3}" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ${v.status}</text>
-        ${hasGas && src ? `<text x="${x}" y="${y+43}" text-anchor="middle" font-family="var(--font-tech)" font-size="9.5" font-weight="800" fill="#b45309">⚡ Fed by ${src.id} (${src.pressure} Bar)</text>` : ''}
-      </g>`;
-    }
-
-    function renderCard(px, ty, id, side, A, S) {
-      var c = A[id]; if (!c) return '';
-      var on = Boolean(S[id]), t = (c.type||'').toUpperCase();
-      var bdr = '#a855f7', bg = '#faf5ff', sym = '🏠';
-      if (t.includes('IPNG')) { bdr = '#0284c7'; bg = '#f0f9ff'; sym = '🏭'; }
-      else if (t.includes('CPNG')) { bdr = '#f97316'; bg = '#fff7ed'; sym = '🏨'; }
-      var endX = side === 'left' ? px - 55 : px + 55;
-      var cx = side === 'left' ? endX - 260 : endX;
-      var nm = (c.name || id).slice(0, 22);
-      var locTag = c.location ? `<text x="${cx+10}" y="${ty+35}" font-size="10" fill="#0284c7" onclick="openMap('${c.location}')" style="cursor:pointer;text-decoration:underline;">📍 ${c.location}</text>` : '';
-      return renderPipe(`M ${px} ${ty} L ${endX} ${ty}`, on) +
-        `<circle cx="${px}" cy="${ty}" r="4.5" fill="#f59e0b"/>
-        <g>
-          <rect x="${cx}" y="${ty-27}" width="260" height="70" rx="8" fill="${on?bg:'#f8fafc'}" stroke="${on?bdr:'#cbd5e1'}" stroke-width="2"/>
-          <text x="${cx+10}" y="${ty-10}" font-family="var(--font-tech)" font-size="13" font-weight="800" fill="${on?'#0f172a':'#64748b'}">${sym} ${nm}</text>
-          <text x="${cx+10}" y="${ty+5}" font-family="var(--font-tech)" font-size="10.5" font-weight="700" fill="#0284c7">No: ${c.id} • ${c.tag||'40'}</text>
-          ${locTag}
-          <text x="${cx+180}" y="${ty+35}" font-size="10.5" font-weight="800" fill="${on?'#16a34a':'#ef4444'}">● ${on?'ON':'OFF'}</text>
-        </g>`;
-    }
-
-    function renderBadge(x, lbl, live) {
-      return renderPipe(`M ${x} 95 L ${x} 118`, live) + renderPipe(`M ${x} 142 L ${x} 175`, live) +
-        `<g><rect x="${x-65}" y="118" width="130" height="24" rx="12" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.8"/>
-        <text x="${x}" y="134" text-anchor="middle" font-family="var(--font-tech)" font-size="12" font-weight="800" fill="#0284c7">${lbl}</text></g>`;
-    }
-
-    function renderPAndID() {
-      if (!scadaData || !scadaData.assets) return;
-      var A = scadaData.assets, S = scadaData.supply, F = scadaData.fed_by;
-
-      // Dynamic Multi-DRS Header Placement
-      var drsNodes = Object.values(A).filter(a => (a.type||'').toUpperCase() === 'DRS').sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
-      var lastDrsExtent = drsNodes.length ? 1650 + (drsNodes.length - 1) * 2800 + 1400 : 0;
-      var svgW = Math.max(8800, lastDrsExtent + 400);
-      var svg = `<svg id="mainScadaSvg" viewBox="0 0 ${svgW} 1400" width="${svgW}px" height="1400px" style="background:#fff;">
-        <g id="panZoomGroup" transform="translate(${panX},${panY}) scale(${currentZoom})">`;
-
-      // Render all DRS stations dynamically from database
-      var drsX = 1650;
-      drsNodes.forEach((drs, idx) => {
-        svg += renderDRSBox(drsX, 25, drs.id, A, S);
-        svg += renderPipe(`M ${drsX-1400} 95 L ${drsX+1400} 95`, S[drs.id]);
-        drsX += 2800;
-      });
-
-      // Standard Sub-networks & Lines
-      svg += renderBadge(250, '⚡ Direct Spurs', S['D01']) + renderPipe('M 250 175 L 250 355', S['D01']);
-      [['D01-DIR-01',175],['D01-DIR-02',235],['D01-DIR-03',295],['D01-DIR-04',355]].forEach(r => { if(A[r[0]]) svg += renderCard(250, r[1], r[0], 'left', A, S); });
-
-      var cols = [
-        [950, '⚡ LINE 1', 'D01', [['CG-D01-PE01', 175, 245, [['31000003', 245, 'right']]]]],
-        [1650, '⚡ LINE 2', 'D01', [['CG-D01-PE02', 175, 295, [['CG-D01-SR03', 230, 'right']]], ['CG-D01-PE02/01', 295, 415, []], ['CG-D01-PE02/02', 415, 555, [['CG-D01-SR01', 470, 'right']]], ['CG-D01-PE02/03', 555, 610, [['CG-D01-SR07', 610, 'right']]]]],
-        [2350, '⚡ LINE 3', 'D01', [['CG-D01-PE03', 175, 275, []], ['CG-D01-PE04', 275, 385, []], ['CG-D01-PE04/01', 385, 495, []], ['CG-D01-PE04/02', 495, 605, []], ['CG-D01-PE04/03', 605, 660, [['21300007', 660, 'right']]]]],
-        [3050, '⚡ LINE 4', 'D01', [['CG-D01-PE05', 435, 545, []], ['CG-D01-PE05/01', 545, 655, [['21300016', 600, 'left']]], ['CG-D01-PE06', 655, 755, []], ['CG-D01-PE07', 755, 845, []], ['CG-D01-PE07/01', 845, 845, []]]],
-        [3900, '⚡ LINE 1', 'D03', [['S03-D03-PE01', 175, 335, [['21300095', 235, 'left'], ['21300071', 235, 'right']]], ['S03-D03-PE06', 335, 495, [['21300055', 395, 'left'], ['21300038', 395, 'right']]], ['S03-D03-PE07', 495, 555, [['21300052', 555, 'left']]]]],
-        [4600, '⚡ LINE 2', 'D03', [['S03-D03-PE02', 175, 235, [['21100002', 235, 'left'], ['21100007', 235, 'right']]]]],
-        [5300, '⚡ LINE 3', 'D03', [['S03-D03-PE03', 175, 335, [['21300005', 235, 'left']]], ['S03-D03-PE03/1', 335, 495, [['21100001', 395, 'left'], ['21100008', 395, 'right']]], ['S03-D03-PE04', 495, 495, []]]],
-        [6150, '⚡ LINE 1', 'D02', [['S02-D02-PE01', 175, 355, [['D02-SR10', 235, 'left'], ['31000015', 235, 'right']]], ['S02-D02-PE04', 355, 415, [['31000002', 415, 'left'], ['31000008', 415, 'right']]]]],
-        [6850, '⚡ LINE 2', 'D02', [['S02-D02-PE02', 175, 235, [['31000024', 235, 'left']]]]],
-        [7550, '⚡ LINE 3', 'D02', [['S02-D02-PE06', 175, 235, [['31000045', 235, 'left']]]]],
-        [8250, '⚡ LINE 4', 'D02', [['S02-D02-PE08', 175, 295, []], ['S02-D02-PE07', 295, 415, []], ['S02-D02-PE07/02', 415, 415, []]]]
-      ];
-
-      var renderedIds = new Set(['D01','D02','D03','D01-DIR-01','D01-DIR-02','D01-DIR-03','D01-DIR-04']);
-      cols.forEach(col => {
-        var x = col[0], badge = col[1], drs = col[2], vList = col[3];
-        svg += renderBadge(x, badge, S[drs]);
-        vList.forEach(v => {
-          var vid = v[0], vy = v[1], ny = v[2], cList = v[3];
-          renderedIds.add(vid);
-          if (A[vid]) {
-            var vLive = S[vid] && A[vid].status === 'ON';
-            if (ny > vy) svg += renderPipe(`M ${x} ${vy+23} L ${x} ${ny}`, vLive);
-            svg += renderValve(x, vy, vid, A, S, F);
-          }
-          cList.forEach(c => { if(A[c[0]]) { renderedIds.add(c[0]); svg += renderCard(x, c[1], c[0], c[2], A, S); } });
-        });
-      });
-
-      var customX = 450, customY = 1140;
-      Object.keys(A).forEach(id => {
-        if (!renderedIds.has(id) && (A[id].type||'').toUpperCase() !== 'DRS' && customX < svgW - 400) {
-          var a = A[id];
-          if ((a.type||'').toUpperCase().includes('VALVE')) svg += renderValve(customX, customY, id, A, S, F);
-          else svg += renderCard(customX, customY, id, 'right', A, S);
-          customX += 420;
-        }
-      });
-
-      svg += '</g></svg>';
-      document.getElementById('viewport').innerHTML = svg;
-    }
-
-    window.onload = function() {
-      setupViewportControls();
-      var savedRole = localStorage.getItem('bgl_role');
-      if (savedRole) { currentUserRole = savedRole; document.getElementById('loginOverlay').style.display = 'none'; applyRoleUI(); }
-      fetchLiveSnapshot();
-    };
-  </script>
-</body>
-</html>
+    function closeAssetModal() { document.getElementById('asset
