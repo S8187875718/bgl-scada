@@ -3,6 +3,7 @@ import io
 import sqlite3
 from datetime import datetime
 import openpyxl
+from typing import Dict, List, Any
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -13,13 +14,96 @@ app = FastAPI(title="BGL Gas SCADA Engine")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_HTML = os.path.join(BASE_DIR, "templates", "index.html")
 DB_PATH = os.path.join(BASE_DIR, "scada.db")
+MASTER_EXCEL = os.path.join(BASE_DIR, "master_data.xlsx")
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
+def load_excel_bytes_to_db(contents: bytes, cursor):
+    wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+    now = datetime.now().strftime("%Y-%m-%d")
+
+    cursor.execute("DELETE FROM assets")
+    cursor.execute("DELETE FROM pipelines")
+
+    assets_sheet = None
+    for s in wb.sheetnames:
+        if s.strip().lower() == "assets":
+            assets_sheet = wb[s]
+            break
+    if not assets_sheet:
+        assets_sheet = wb.active
+
+    asset_count = 0
+    if assets_sheet:
+        headers = [str(c.value or "").strip() for c in assets_sheet[1]]
+        col_map = {name: idx for idx, name in enumerate(headers) if name}
+        rows = []
+        for row in assets_sheet.iter_rows(min_row=2, values_only=True):
+            if not row or len(row) == 0:
+                continue
+            raw_id = row[col_map.get("Asset ID", 0)]
+            if raw_id is None or str(raw_id).strip() == "":
+                continue
+            aid = str(raw_id).strip()
+            name = str(row[col_map.get("Asset Name", 1)] or aid).strip()
+            atype = str(row[col_map.get("Type", 2)] or "VALVE").strip().upper()
+            tag = str(row[col_map.get("Tag", 3)] or "125 MM").strip()
+            details = str(row[col_map.get("Details", 4)] or "").strip() if len(row) > 4 else ""
+            status = str(row[col_map.get("Status", 7)] or "ON").strip().upper() if len(row) > 7 else "ON"
+            if status not in ["ON", "OFF"]:
+                status = "ON"
+            loc = str(row[col_map.get("Location", 8)] or "").strip() if len(row) > 8 else ""
+            if loc == "None":
+                loc = ""
+
+            press = 4.0 if atype == "DRS" else 0.0
+            if atype == "DRS" and "bar" in details.lower():
+                try:
+                    press = float("".join(ch for ch in details if ch.isdigit() or ch == "."))
+                except:
+                    pass
+            rows.append((aid, name, atype, tag, details, now, now, status, loc, press))
+        cursor.executemany("INSERT OR REPLACE INTO assets VALUES (?,?,?,?,?,?,?,?,?,?)", rows)
+        asset_count = len(rows)
+
+    links_sheet = None
+    for s in wb.sheetnames:
+        if s.strip().lower() in ["links", "link", "sheet2"]:
+            links_sheet = wb[s]
+            break
+
+    link_count = 0
+    if links_sheet:
+        headers = [str(c.value or "").strip() for c in links_sheet[1]]
+        col_map = {name: idx for idx, name in enumerate(headers) if name}
+        p_idx = col_map.get("Parent ID", 0)
+        c_idx = col_map.get("Child ID", 1)
+        links = []
+        for row in links_sheet.iter_rows(min_row=2, values_only=True):
+            if not row or len(row) < 2:
+                continue
+            src = str(row[p_idx] or "").strip() if row[p_idx] is not None else ""
+            tgt = str(row[c_idx] or "").strip() if row[c_idx] is not None else ""
+            if src and tgt and src != tgt and src != "None" and tgt != "None":
+                links.append((src, tgt, now))
+        cursor.executemany("INSERT OR IGNORE INTO pipelines VALUES (?,?,?)", links)
+        link_count = len(links)
+
+    return asset_count, link_count
+
 def seed_default_network(cursor):
+    # If master_data.xlsx exists in project folder, auto-load it permanently!
+    if os.path.exists(MASTER_EXCEL):
+        try:
+            with open(MASTER_EXCEL, "rb") as f:
+                load_excel_bytes_to_db(f.read(), cursor)
+            return
+        except Exception as e:
+            print("Master excel load error:", e)
+
     now = datetime.now().strftime("%Y-%m-%d")
     default_assets = [
         ("D01", "MS DRS", "DRS", "125 MM", "4.1 Bar", now, now, "ON", "Shamirpet, Hyderabad", 4.1),
@@ -84,10 +168,6 @@ def init_db():
 
 init_db()
 
-class LoginReq(BaseModel):
-    username: str
-    password: str
-
 class ToggleReq(BaseModel):
     asset_id: str
     status: str
@@ -113,6 +193,10 @@ class AssetDeleteReq(BaseModel):
 class PipelineReq(BaseModel):
     source_id: str
     target_id: str
+
+class BackupRestoreReq(BaseModel):
+    assets: Dict[str, Any]
+    pipelines: List[List[str]]
 
 def load_network_from_db():
     conn = get_db()
@@ -184,19 +268,46 @@ def index():
         return FileResponse(INDEX_HTML, media_type="text/html")
     return {"error": "index.html not found"}
 
-@app.post("/api/login")
-def login_user(req: LoginReq):
-    u = req.username.strip().lower()
-    p = req.password.strip()
-    if u == "admin" and p == "admin123":
-        return {"success": True, "role": "admin", "username": "Admin"}
-    elif u == "user" and p == "user123":
-        return {"success": True, "role": "user", "username": "User"}
-    return {"success": False, "message": "Invalid Username leda Password!"}
-
 @app.get("/api/snapshot")
 def get_snapshot():
     return build_response()
+
+# AUTO-RESTORE ENDPOINT (Restores browser backup when Render restarts)
+@app.post("/api/restore-backup")
+def restore_backup(req: BackupRestoreReq):
+    if not req.assets:
+        return build_response()
+    now = datetime.now().strftime("%Y-%m-%d")
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM assets")
+    cursor.execute("DELETE FROM pipelines")
+
+    a_rows = []
+    for aid, a in req.assets.items():
+        a_rows.append((
+            str(aid),
+            str(a.get("name") or aid),
+            str(a.get("type") or "VALVE").upper(),
+            str(a.get("tag") or "125 MM"),
+            str(a.get("details") or ""),
+            str(a.get("created_at") or now),
+            str(a.get("updated_at") or now),
+            str(a.get("status") or "ON").upper(),
+            str(a.get("location") or ""),
+            float(a.get("pressure") or 0.0)
+        ))
+    cursor.executemany("INSERT OR REPLACE INTO assets VALUES (?,?,?,?,?,?,?,?,?,?)", a_rows)
+
+    p_rows = []
+    for pair in req.pipelines:
+        if len(pair) >= 2 and pair[0] and pair[1]:
+            p_rows.append((str(pair[0]), str(pair[1]), now))
+    cursor.executemany("INSERT OR IGNORE INTO pipelines VALUES (?,?,?)", p_rows)
+
+    conn.commit()
+    conn.close()
+    return build_response("Backup data auto-restored!")
 
 @app.post("/api/asset/save")
 def save_asset(req: AssetSaveReq):
@@ -306,83 +417,17 @@ def load_default():
 async def upload_excel(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+        # Save a copy to master_data.xlsx on server
+        with open(MASTER_EXCEL, "wb") as f:
+            f.write(contents)
+        conn = get_db()
+        cursor = conn.cursor()
+        asset_count, link_count = load_excel_bytes_to_db(contents, cursor)
+        conn.commit()
+        conn.close()
+        return build_response(f"Excel Imported & Saved Permanently: {asset_count} Assets, {link_count} Links!")
     except Exception as e:
         return {"success": False, "message": f"Excel Read Error: {str(e)}"}
-
-    now = datetime.now().strftime("%Y-%m-%d")
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM assets")
-    cursor.execute("DELETE FROM pipelines")
-
-    assets_sheet = None
-    for s in wb.sheetnames:
-        if s.strip().lower() == "assets":
-            assets_sheet = wb[s]
-            break
-    if not assets_sheet:
-        assets_sheet = wb.active
-
-    asset_count = 0
-    if assets_sheet:
-        headers = [str(c.value or "").strip() for c in assets_sheet[1]]
-        col_map = {name: idx for idx, name in enumerate(headers) if name}
-        rows = []
-        for row in assets_sheet.iter_rows(min_row=2, values_only=True):
-            if not row or len(row) == 0:
-                continue
-            raw_id = row[col_map.get("Asset ID", 0)]
-            if raw_id is None or str(raw_id).strip() == "":
-                continue
-            aid = str(raw_id).strip()
-            name = str(row[col_map.get("Asset Name", 1)] or aid).strip()
-            atype = str(row[col_map.get("Type", 2)] or "VALVE").strip().upper()
-            tag = str(row[col_map.get("Tag", 3)] or "125 MM").strip()
-            details = str(row[col_map.get("Details", 4)] or "").strip() if len(row) > 4 else ""
-            status = str(row[col_map.get("Status", 7)] or "ON").strip().upper() if len(row) > 7 else "ON"
-            if status not in ["ON", "OFF"]:
-                status = "ON"
-            loc = str(row[col_map.get("Location", 8)] or "").strip() if len(row) > 8 else ""
-            if loc == "None":
-                loc = ""
-
-            press = 4.0 if atype == "DRS" else 0.0
-            if atype == "DRS" and "bar" in details.lower():
-                try:
-                    press = float("".join(ch for ch in details if ch.isdigit() or ch == "."))
-                except:
-                    pass
-            rows.append((aid, name, atype, tag, details, now, now, status, loc, press))
-        cursor.executemany("INSERT OR REPLACE INTO assets VALUES (?,?,?,?,?,?,?,?,?,?)", rows)
-        asset_count = len(rows)
-
-    links_sheet = None
-    for s in wb.sheetnames:
-        if s.strip().lower() in ["links", "link", "sheet2"]:
-            links_sheet = wb[s]
-            break
-
-    link_count = 0
-    if links_sheet:
-        headers = [str(c.value or "").strip() for c in links_sheet[1]]
-        col_map = {name: idx for idx, name in enumerate(headers) if name}
-        p_idx = col_map.get("Parent ID", 0)
-        c_idx = col_map.get("Child ID", 1)
-        links = []
-        for row in links_sheet.iter_rows(min_row=2, values_only=True):
-            if not row or len(row) < 2:
-                continue
-            src = str(row[p_idx] or "").strip() if row[p_idx] is not None else ""
-            tgt = str(row[c_idx] or "").strip() if row[c_idx] is not None else ""
-            if src and tgt and src != tgt and src != "None" and tgt != "None":
-                links.append((src, tgt, now))
-        cursor.executemany("INSERT OR IGNORE INTO pipelines VALUES (?,?,?)", links)
-        link_count = len(links)
-
-    conn.commit()
-    conn.close()
-    return build_response(f"Excel Imported: {asset_count} Assets, {link_count} Links!")
 
 @app.get("/api/export-excel")
 def export_excel():
