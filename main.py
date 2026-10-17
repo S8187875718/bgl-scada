@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 import networkx as nx
 
-app = FastAPI(title="BGL Gas SCADA Engine")
+app = FastAPI(title="BGL Gas SCADA Engine v5.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_HTML = os.path.join(BASE_DIR, "templates", "index.html")
@@ -95,7 +95,6 @@ def load_excel_bytes_to_db(contents: bytes, cursor):
     return asset_count, link_count
 
 def seed_default_network(cursor):
-    # If master_data.xlsx exists in project folder, auto-load it permanently!
     if os.path.exists(MASTER_EXCEL):
         try:
             with open(MASTER_EXCEL, "rb") as f:
@@ -106,15 +105,14 @@ def seed_default_network(cursor):
 
     now = datetime.now().strftime("%Y-%m-%d")
     default_assets = [
-        ("D01", "MS DRS", "DRS", "125 MM", "4.1 Bar", now, now, "ON", "Shamirpet, Hyderabad", 4.1),
-        ("D03", "Check Post DRS", "DRS", "125 MM", "3.6 Bar", now, now, "ON", "Medchal Check Post, Hyderabad", 3.6),
-        ("D02", "Depo DRS", "DRS", "125 MM", "3.1 Bar", now, now, "ON", "Medchal Depo, Hyderabad", 3.1),
-        ("D01-DIR-01", "Registrar, Nalsar Univ.", "CPNG", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE01", "CG-D01-PE01", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("CG-D01-PE02", "CG-D01-PE02", "VALVE", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("31000003", "IPE Univ. Canteen", "CPNG", "125 MM", "", now, now, "ON", "Shamirpet", 0.0),
-        ("S03-D03-PE01", "S03-D03-PE01", "VALVE", "125 MM", "", now, now, "ON", "Check Post", 0.0),
-        ("S02-D02-PE01", "S02-D02-PE01", "VALVE", "125 MM", "", now, now, "ON", "Medchal", 0.0)
+        ("D01", "MS DRS", "DRS", "125 MM", "4.1 Bar", now, now, "ON", "17.6231,78.5253", 4.1),
+        ("D03", "Check Post DRS", "DRS", "125 MM", "3.6 Bar", now, now, "ON", "17.6105,78.4966", 3.6),
+        ("D02", "Depo DRS", "DRS", "125 MM", "3.1 Bar", now, now, "ON", "17.6313,78.5299", 3.1),
+        ("CG-D01-PE01", "CG-D01-PE01", "VALVE", "125 MM", "", now, now, "ON", "17.6231,78.5253", 0.0),
+        ("CG-D01-PE02", "CG-D01-PE02", "VALVE", "125 MM", "", now, now, "ON", "17.6343,78.5177", 0.0),
+        ("31000003", "IPE Univ. Canteen", "CPNG", "125 MM", "", now, now, "ON", "17.6240,78.5260", 0.0),
+        ("S03-D03-PE01", "S03-D03-PE01", "VALVE", "125 MM", "", now, now, "ON", "17.6105,78.4966", 0.0),
+        ("S02-D02-PE01", "S02-D02-PE01", "VALVE", "125 MM", "", now, now, "ON", "17.6313,78.5299", 0.0)
     ]
     cursor.executemany("INSERT OR REPLACE INTO assets VALUES (?,?,?,?,?,?,?,?,?,?)", default_assets)
 
@@ -172,6 +170,9 @@ class ToggleReq(BaseModel):
     asset_id: str
     status: str
 
+class SimulateReq(BaseModel):
+    overrides: Dict[str, str]
+
 class PressureReq(BaseModel):
     drs_id: str
     pressure: float
@@ -198,7 +199,16 @@ class BackupRestoreReq(BaseModel):
     assets: Dict[str, Any]
     pipelines: List[List[str]]
 
-def load_network_from_db():
+def is_upstream_node(nid: str, assets: dict) -> bool:
+    u = nid.strip().upper()
+    if u == "CG" or (u.startswith("S0") and len(u) == 3):
+        return True
+    t = str(assets.get(nid, {}).get("type", "")).upper()
+    if t in ["CG", "SV", "STEEL"]:
+        return True
+    return False
+
+def load_network_from_db(overrides: Dict[str, str] = None):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM assets")
@@ -207,16 +217,23 @@ def load_network_from_db():
     pipelines = [(row["source_id"], row["target_id"]) for row in cursor.fetchall()]
     conn.close()
 
+    if overrides:
+        for aid, st in overrides.items():
+            if aid in assets:
+                assets[aid]["status"] = st
+
     G = nx.Graph()
     for node_id in assets:
-        G.add_node(node_id)
+        if not is_upstream_node(node_id, assets):
+            G.add_node(node_id)
     for u, v in pipelines:
-        G.add_edge(u, v)
+        if u in G and v in G and not is_upstream_node(u, assets) and not is_upstream_node(v, assets):
+            G.add_edge(u, v)
 
     return assets, pipelines, G
 
-def run_scada_bfs_flow():
-    assets, pipelines, G = load_network_from_db()
+def run_scada_bfs_flow(overrides: Dict[str, str] = None):
+    assets, pipelines, G = load_network_from_db(overrides)
 
     active_drs = [
         k for k, v in assets.items()
@@ -224,7 +241,7 @@ def run_scada_bfs_flow():
     ]
     active_drs.sort(key=lambda x: float(assets[x].get("pressure") or 0.0), reverse=True)
 
-    gas_supply = {node: False for node in G.nodes()}
+    gas_supply = {node: False for node in assets}
     fed_by = {}
 
     for drs in active_drs:
@@ -241,18 +258,22 @@ def run_scada_bfs_flow():
             if ("VALVE" in c_type or c_type == "VC") and c_stat == "OFF":
                 continue
 
-            for nbr in G.neighbors(curr):
-                if nbr not in visited:
-                    visited.add(nbr)
-                    gas_supply[nbr] = True
-                    if nbr not in fed_by:
-                        fed_by[nbr] = fed_by[curr]
-                    q.append(nbr)
+            if curr in G:
+                for nbr in G.neighbors(curr):
+                    if nbr not in visited:
+                        # Do not flow through another DRS station box
+                        if str(assets.get(nbr, {}).get("type", "")).upper() == "DRS":
+                            continue
+                        visited.add(nbr)
+                        gas_supply[nbr] = True
+                        if nbr not in fed_by:
+                            fed_by[nbr] = fed_by[curr]
+                        q.append(nbr)
 
     return assets, pipelines, gas_supply, fed_by
 
-def build_response(msg=""):
-    assets, pipelines, supply, fed_by = run_scada_bfs_flow()
+def build_response(msg="", overrides: Dict[str, str] = None):
+    assets, pipelines, supply, fed_by = run_scada_bfs_flow(overrides)
     return {
         "success": True,
         "message": msg,
@@ -272,7 +293,11 @@ def index():
 def get_snapshot():
     return build_response()
 
-# AUTO-RESTORE ENDPOINT (Restores browser backup when Render restarts)
+# USER SIMULATION ENDPOINT (Does NOT overwrite permanent Admin DB)
+@app.post("/api/simulate")
+def simulate_flow(req: SimulateReq):
+    return build_response("Simulation updated", req.overrides)
+
 @app.post("/api/restore-backup")
 def restore_backup(req: BackupRestoreReq):
     if not req.assets:
@@ -343,7 +368,7 @@ def save_asset(req: AssetSaveReq):
 
     conn.commit()
     conn.close()
-    return build_response(f"Asset '{asset_id}' saved successfully!")
+    return build_response(f"Asset '{asset_id}' saved permanently!")
 
 @app.post("/api/asset/delete")
 def delete_asset(req: AssetDeleteReq):
@@ -353,7 +378,7 @@ def delete_asset(req: AssetDeleteReq):
     cursor.execute("DELETE FROM pipelines WHERE source_id = ? OR target_id = ?", (req.id.strip(), req.id.strip()))
     conn.commit()
     conn.close()
-    return build_response("Asset deleted successfully!")
+    return build_response("Asset deleted permanently!")
 
 @app.post("/api/pipeline/add")
 def add_pipeline(req: PipelineReq):
@@ -363,7 +388,7 @@ def add_pipeline(req: PipelineReq):
     cursor.execute("INSERT OR IGNORE INTO pipelines VALUES (?, ?, ?)", (req.source_id.strip(), req.target_id.strip(), now))
     conn.commit()
     conn.close()
-    return build_response("Link added successfully!")
+    return build_response("Link added permanently!")
 
 @app.post("/api/pipeline/delete")
 def delete_pipeline(req: PipelineReq):
@@ -373,8 +398,9 @@ def delete_pipeline(req: PipelineReq):
                    (req.source_id.strip(), req.target_id.strip(), req.target_id.strip(), req.source_id.strip()))
     conn.commit()
     conn.close()
-    return build_response("Link removed successfully!")
+    return build_response("Link removed permanently!")
 
+# ADMIN PERMANENT TOGGLE
 @app.post("/api/toggle")
 def toggle_asset(req: ToggleReq):
     conn = get_db()
@@ -400,7 +426,7 @@ def reset_all():
     cursor.execute("UPDATE assets SET status = 'ON'")
     conn.commit()
     conn.close()
-    return build_response("All valves reset to ON!")
+    return build_response("All valves reset to ON permanently!")
 
 @app.post("/api/load-default")
 def load_default():
@@ -417,7 +443,6 @@ def load_default():
 async def upload_excel(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        # Save a copy to master_data.xlsx on server
         with open(MASTER_EXCEL, "wb") as f:
             f.write(contents)
         conn = get_db()
