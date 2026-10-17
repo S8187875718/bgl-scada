@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BGL Gas Network Control - SCADA v3.0</title>
+  <title>BGL Gas Network Control - SCADA v4.0</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -90,7 +90,7 @@
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" style="width:60px;height:60px;margin-bottom:8px;">
-      <h2>BGL SCADA Login v3.0</h2>
+      <h2>BGL SCADA Login v4.0</h2>
       <p>Industrial P&ID Gas Network Control</p>
       <input type="text" id="loginUser" class="login-field" placeholder="Username" value="admin">
       <input type="password" id="loginPass" class="login-field" placeholder="Password" value="admin123" onkeydown="if(event.key==='Enter') performLoginNow()">
@@ -99,37 +99,17 @@
     </div>
   </div>
 
-  <script>
-    var currentUserRole = null;
-    function performLoginNow() {
-      var u = (document.getElementById('loginUser').value || '').trim().toLowerCase();
-      var p = (document.getElementById('loginPass').value || '').trim();
-      if (u === 'admin' && p === 'admin123') {
-        currentUserRole = 'admin';
-      } else if (u === 'user' && p === 'user123') {
-        currentUserRole = 'user';
-      } else {
-        alert('Invalid Username or Password! Use admin / admin123');
-        return;
-      }
-      document.getElementById('loginOverlay').style.display = 'none';
-      try { localStorage.setItem('bgl_role', currentUserRole); } catch(e) {}
-      if (typeof applyRoleUI === 'function') applyRoleUI();
-      if (typeof fetchLiveSnapshot === 'function') fetchLiveSnapshot();
-    }
-  </script>
-
   <!-- 2. HEADER -->
   <header class="bgl-header">
     <div class="brand-area">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" alt="BGL">
       <div class="brand-text">
         <h1>BGL Gas Network Control</h1>
-        <p>Industrial SCADA Engine v3.0 (Auto-Backup + Multi-DRS Loop Engine)</p>
+        <p>Industrial SCADA Engine v4.0 (Auto-Backup + Multi-DRS Loop Engine)</p>
       </div>
     </div>
     <div class="user-area">
-      <span id="roleBadge" class="role-badge role-user">👤 Guest</span>
+      <span id="roleBadge" class="role-badge role-admin">👑 Admin Mode</span>
       <button type="button" class="logout-btn" onclick="logoutUser()">Logout</button>
     </div>
   </header>
@@ -225,31 +205,14 @@
     </div>
   </div>
 
+  <!-- SINGLE UNIFIED SCRIPT BLOCK -->
   <script>
+    var currentUserRole = 'admin';
     var scadaData = null;
     var drsPositions = {};
     var panX = 40, panY = 20, currentZoom = 0.85;
     var isDragging = false, startMouseX = 0, startMouseY = 0;
     var BACKUP_KEY = 'bgl_scada_permanent_backup_v1';
-
-    function saveBrowserBackup(data) {
-      if (!data || !data.assets) return;
-      var count = Object.keys(data.assets).length;
-      if (count > 12) {
-        try {
-          localStorage.setItem(BACKUP_KEY, JSON.stringify({
-            assets: data.assets,
-            pipelines: data.pipelines || []
-          }));
-        } catch(e) {}
-      }
-    }
-
-    function logoutUser() {
-      currentUserRole = null;
-      try { localStorage.removeItem('bgl_role'); } catch(e) {}
-      document.getElementById('loginOverlay').style.display = 'flex';
-    }
 
     function applyRoleUI() {
       var badge = document.getElementById('roleBadge');
@@ -267,6 +230,42 @@
         resetBtn.style.display = 'none';
       }
       if (scadaData) renderPAndID();
+    }
+
+    function performLoginNow() {
+      var u = (document.getElementById('loginUser').value || '').trim().toLowerCase();
+      var p = (document.getElementById('loginPass').value || '').trim();
+      if (u === 'admin' && p === 'admin123') {
+        currentUserRole = 'admin';
+      } else if (u === 'user' && p === 'user123') {
+        currentUserRole = 'user';
+      } else {
+        alert('Invalid Username or Password! Use admin / admin123');
+        return;
+      }
+      document.getElementById('loginOverlay').style.display = 'none';
+      try { localStorage.setItem('bgl_role', currentUserRole); } catch(e) {}
+      applyRoleUI();
+      fetchLiveSnapshot();
+    }
+
+    function logoutUser() {
+      currentUserRole = null;
+      try { localStorage.removeItem('bgl_role'); } catch(e) {}
+      document.getElementById('loginOverlay').style.display = 'flex';
+    }
+
+    function saveBrowserBackup(data) {
+      if (!data || !data.assets) return;
+      var count = Object.keys(data.assets).length;
+      if (count > 12) {
+        try {
+          localStorage.setItem(BACKUP_KEY, JSON.stringify({
+            assets: data.assets,
+            pipelines: data.pipelines || []
+          }));
+        } catch(e) {}
+      }
     }
 
     function changeZoom(delta) {
@@ -302,42 +301,41 @@
       window.onmouseup = function() { isDragging = false; };
     }
 
-    async function fetchLiveSnapshot() {
-      try {
-        var res = await fetch('/api/snapshot');
-        var data = await res.json();
-        var serverCount = data && data.assets ? Object.keys(data.assets).length : 0;
+    function fetchLiveSnapshot() {
+      fetch('/api/snapshot')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          var serverCount = data && data.assets ? Object.keys(data.assets).length : 0;
+          var rawBackup = null;
+          try { rawBackup = localStorage.getItem(BACKUP_KEY); } catch(e) {}
 
-        // Check if Render wiped DB on restart & auto-restore from Browser Backup!
-        var rawBackup = null;
-        try { rawBackup = localStorage.getItem(BACKUP_KEY); } catch(e) {}
-        if (rawBackup && serverCount <= 12) {
-          var parsed = JSON.parse(rawBackup);
-          var backupCount = parsed && parsed.assets ? Object.keys(parsed.assets).length : 0;
-          if (backupCount > serverCount) {
-            document.getElementById('statusText').innerText = '🔄 Render Restart Detected: Auto-Restoring ' + backupCount + ' Assets to Database...';
-            var restoreRes = await fetch('/api/restore-backup', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: rawBackup
-            });
-            data = await restoreRes.json();
+          if (rawBackup && serverCount <= 12) {
+            var parsed = JSON.parse(rawBackup);
+            var backupCount = parsed && parsed.assets ? Object.keys(parsed.assets).length : 0;
+            if (backupCount > serverCount) {
+              document.getElementById('statusText').innerText = '🔄 Auto-Restoring ' + backupCount + ' Assets from Backup...';
+              return fetch('/api/restore-backup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: rawBackup
+              }).then(function(r) { return r.json(); });
+            }
           }
-        } else if (serverCount > 12) {
-          saveBrowserBackup(data);
-        }
-
-        scadaData = data;
-        refreshUI();
-      } catch(e) {
-        document.getElementById('statusText').innerText = '⚠️ Server connecting... (' + e.message + ')';
-      }
+          return data;
+        })
+        .then(function(finalData) {
+          scadaData = finalData;
+          refreshUI();
+        })
+        .catch(function(err) {
+          document.getElementById('statusText').innerText = '⚠️ Server error: ' + err.message;
+        });
     }
 
     function refreshUI() {
       if (!scadaData || !scadaData.assets) return;
       saveBrowserBackup(scadaData);
-      document.getElementById('statusText').innerText = '⚡ SCADA Active (' + Object.keys(scadaData.assets).length + ' Assets, ' + (scadaData.pipelines ? scadaData.pipelines.length : 0) + ' Links - Auto-Saved)';
+      document.getElementById('statusText').innerText = '⚡ SCADA Active (' + Object.keys(scadaData.assets).length + ' Assets, ' + (scadaData.pipelines ? scadaData.pipelines.length : 0) + ' Links)';
       updateKPIs();
       updateDropdowns();
       renderPAndID();
@@ -394,7 +392,7 @@
     }
     function closeAssetModal() { document.getElementById('assetModal').style.display = 'none'; }
 
-    async function saveSingleAsset() {
+    function saveSingleAsset() {
       var payload = {
         id: document.getElementById('fAssetId').value.trim(), name: document.getElementById('fAssetName').value.trim(),
         type: document.getElementById('fAssetType').value, tag: document.getElementById('fAssetTag').value.trim(),
@@ -403,16 +401,19 @@
         parent_id: document.getElementById('fAssetParent').value
       };
       if (!payload.id) { alert('Asset ID ivvali!'); return; }
-      var res = await fetch('/api/asset/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-      var data = await res.json();
-      if (data.success) { scadaData = data; closeAssetModal(); refreshUI(); if (document.getElementById('managerModal').style.display === 'flex') renderAssetTable(); }
-      else alert(data.message);
+      fetch('/api/asset/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) { scadaData = data; closeAssetModal(); refreshUI(); if (document.getElementById('managerModal').style.display === 'flex') renderAssetTable(); }
+          else alert(data.message);
+        });
     }
 
-    async function deleteSingleAsset(id) {
+    function deleteSingleAsset(id) {
       if (!confirm('Asset ' + id + ' ni delete cheyala?')) return;
-      var res = await fetch('/api/asset/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id }) });
-      scadaData = await res.json(); refreshUI(); renderAssetTable();
+      fetch('/api/asset/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { scadaData = data; refreshUI(); renderAssetTable(); });
     }
 
     function openManagerModal() { document.getElementById('managerModal').style.display = 'flex'; renderAssetTable(); }
@@ -428,52 +429,56 @@
       }).join('');
     }
 
-    async function submitLinkPipeline(isDelete) {
+    function submitLinkPipeline(isDelete) {
       var src = document.getElementById('linkSource').value, tgt = document.getElementById('linkTarget').value;
-      var res = await fetch(isDelete ? '/api/pipeline/delete' : '/api/pipeline/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source_id: src, target_id: tgt }) });
-      var data = await res.json(); alert(data.message);
-      if (data.success) { scadaData = data; refreshUI(); }
+      fetch(isDelete ? '/api/pipeline/delete' : '/api/pipeline/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source_id: src, target_id: tgt }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { alert(data.message); if (data.success) { scadaData = data; refreshUI(); } });
     }
 
-    async function handleExcelUpload(event) {
+    function handleExcelUpload(event) {
       var file = event.target.files[0]; if (!file) return;
       var fd = new FormData(); fd.append('file', file);
-      var res = await fetch('/api/upload-excel', { method: 'POST', body: fd });
-      var data = await res.json(); alert(data.message);
-      if (data.success) {
-        scadaData = data;
-        saveBrowserBackup(data);
-        refreshUI();
-      }
-      event.target.value = '';
+      document.getElementById('statusText').innerText = '⏳ Uploading & Saving Excel Data...';
+      fetch('/api/upload-excel', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          alert(data.message);
+          if (data.success) { scadaData = data; saveBrowserBackup(data); refreshUI(); }
+          event.target.value = '';
+        });
     }
 
-    async function loadDefaultData() {
-      if (!confirm('Default network load cheyala? (Mee browser backup kuda clear avthundi)')) return;
+    function loadDefaultData() {
+      if (!confirm('Default network load cheyala?')) return;
       try { localStorage.removeItem(BACKUP_KEY); } catch(e) {}
-      var res = await fetch('/api/load-default', { method: 'POST' });
-      scadaData = await res.json(); refreshUI();
+      fetch('/api/load-default', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { scadaData = data; refreshUI(); });
     }
 
-    async function toggleAsset(id, curStatus) {
+    function toggleAsset(id, curStatus) {
       if (currentUserRole !== 'admin') { alert('Admin access required!'); return; }
-      var res = await fetch('/api/toggle', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: curStatus === 'ON' ? 'OFF' : 'ON' }) });
-      scadaData = await res.json(); refreshUI();
+      fetch('/api/toggle', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: curStatus === 'ON' ? 'OFF' : 'ON' }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { scadaData = data; refreshUI(); });
     }
 
-    async function promptPressure(drsId, curP) {
+    function promptPressure(drsId, curP) {
       if (currentUserRole !== 'admin') return;
       var n = prompt('Enter new pressure for ' + drsId + ' (Bar):', curP);
       if (n !== null && !isNaN(parseFloat(n))) {
-        var res = await fetch('/api/pressure', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ drs_id: drsId, pressure: parseFloat(n) }) });
-        scadaData = await res.json(); refreshUI();
+        fetch('/api/pressure', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ drs_id: drsId, pressure: parseFloat(n) }) })
+          .then(function(r) { return r.json(); })
+          .then(function(data) { scadaData = data; refreshUI(); });
       }
     }
 
-    async function triggerReset() {
+    function triggerReset() {
       if (currentUserRole !== 'admin') return;
-      var res = await fetch('/api/reset', { method: 'POST' });
-      scadaData = await res.json(); refreshUI();
+      fetch('/api/reset', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { scadaData = data; refreshUI(); });
     }
 
     function openAssetMap(evt, id) {
@@ -524,4 +529,240 @@
         '<circle cx="' + (x-85) + '" cy="' + (y-5) + '" r="9" fill="' + stroke + '"/>' +
         '<text x="' + (x-69) + '" y="' + (y-7) + '" font-family="var(--font-tech)" font-size="12.5" font-weight="800" fill="#0f172a">' + disp + '</text>' +
         '<text x="' + (x-69) + '" y="' + (y+8) + '" font-size="10" font-weight="700" fill="#64748b">' + (v.tag||'125 MM') + '</text>' +
-        '<text class="loc-link" x="' + (x-69) + '" y="' + (y
+        '<text class="loc-link" x="' + (x-69) + '" y="' + (y+24) + '" font-size="10" font-weight="800" fill="#0284c7" data-id="' + id + '" onclick="openAssetMap(event, this.getAttribute(\'data-id\'))" style="cursor:pointer;text-decoration:underline;">' + locLabel + '</text>' +
+        '<rect x="' + (x+41) + '" y="' + (y-14) + '" width="56" height="25" rx="12" fill="' + (isOn?'#16a34a':'#ef4444') + '"/>' +
+        '<text x="' + (x+69) + '" y="' + (y+3) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ' + v.status + '</text>' +
+        (hasGas && src ? '<text x="' + x + '" y="' + (y+44) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="9.5" font-weight="800" fill="#b45309">⚡ Fed by ' + src.id + ' (' + src.pressure + ' Bar)</text>' : '') +
+      '</g>';
+    }
+
+    function renderCard(px, ty, id, side, A, S) {
+      var c = A[id]; if (!c) return '';
+      var on = Boolean(S[id]), t = (c.type||'').toUpperCase();
+      var bdr = '#a855f7', bg = '#faf5ff', sym = '🏠';
+      if (t.indexOf('IPNG') !== -1) { bdr = '#0284c7'; bg = '#f0f9ff'; sym = '🏭'; }
+      else if (t.indexOf('CPNG') !== -1) { bdr = '#f97316'; bg = '#fff7ed'; sym = '🏨'; }
+      var endX = side === 'left' ? px - 55 : px + 55;
+      var cx = side === 'left' ? endX - 260 : endX;
+      var nm = (c.name || id).slice(0, 22);
+      var locLabel = c.location ? ('📍 ' + c.location.slice(0, 22)) : '📍 View Map';
+      return renderPipe('M ' + px + ' ' + ty + ' L ' + endX + ' ' + ty, on) +
+        '<circle cx="' + px + '" cy="' + ty + '" r="4.5" fill="#f59e0b"/>' +
+        '<g data-id="' + id + '" onclick="if(currentUserRole===\'admin\') openAssetModal(this.getAttribute(\'data-id\'))" style="cursor:pointer;">' +
+          '<rect x="' + cx + '" y="' + (ty-28) + '" width="260" height="68" rx="8" fill="' + (on?bg:'#f8fafc') + '" stroke="' + (on?bdr:'#cbd5e1') + '" stroke-width="2"/>' +
+          '<text x="' + (cx+10) + '" y="' + (ty-10) + '" font-family="var(--font-tech)" font-size="12.5" font-weight="800" fill="' + (on?'#0f172a':'#64748b') + '">' + sym + ' ' + nm + '</text>' +
+          '<text x="' + (cx+10) + '" y="' + (ty+6) + '" font-family="var(--font-tech)" font-size="10.5" font-weight="700" fill="#0284c7">No: ' + c.id + ' • ' + (c.tag||'40') + '</text>' +
+          '<text class="loc-link" x="' + (cx+10) + '" y="' + (ty+24) + '" font-size="10.5" font-weight="800" fill="#0284c7" data-id="' + id + '" onclick="openAssetMap(event, this.getAttribute(\'data-id\'))" style="cursor:pointer;text-decoration:underline;">' + locLabel + '</text>' +
+          '<text x="' + (cx+195) + '" y="' + (ty+24) + '" font-size="10.5" font-weight="800" fill="' + (on?'#16a34a':'#ef4444') + '">● ' + (on?'ON':'OFF') + '</text>' +
+        '</g>';
+    }
+
+    function renderBadge(x, lbl, live) {
+      return renderPipe('M ' + x + ' 105 L ' + x + ' 125', live) + renderPipe('M ' + x + ' 149 L ' + x + ' 185', live) +
+        '<g><rect x="' + (x-65) + '" y="125" width="130" height="24" rx="12" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.8"/>' +
+        '<text x="' + x + '" y="141" text-anchor="middle" font-family="var(--font-tech)" font-size="12" font-weight="800" fill="#0284c7">' + lbl + '</text></g>';
+    }
+
+    function edgeKey(u, v) { return u < v ? (u + '||' + v) : (v + '||' + u); }
+
+    function detectExplicitDrs(id, drsSet) {
+      var m = id.match(/(?:^|-)((?:D\d+))(?:-|$)/i);
+      if (m && drsSet.has(m[1].toUpperCase())) return m[1].toUpperCase();
+      return null;
+    }
+
+    function renderPAndID() {
+      if (!scadaData || !scadaData.assets) return;
+      var A = scadaData.assets, S = scadaData.supply || {}, F = scadaData.fed_by || {};
+      var pipes = scadaData.pipelines || [];
+
+      var adj = {};
+      Object.keys(A).forEach(function(k) { adj[k] = []; });
+      pipes.forEach(function(p) {
+        if (adj[p[0]] && adj[p[1]]) {
+          adj[p[0]].push(p[1]);
+          adj[p[1]].push(p[0]);
+        }
+      });
+
+      var drsList = Object.values(A).filter(function(a) { return (a.type||'').toUpperCase() === 'DRS'; }).sort(function(a,b) { return a.id.localeCompare(b.id); });
+      var drsSet = new Set(drsList.map(function(d) { return d.id.toUpperCase(); }));
+      drsPositions = {};
+
+      var ownerDRS = {}, treeChildren = {}, drawnTreeEdges = new Set();
+      Object.keys(A).forEach(function(k) { treeChildren[k] = []; });
+
+      var bfsQ = [];
+      drsList.forEach(function(d) { ownerDRS[d.id] = d.id; bfsQ.push(d.id); });
+
+      var head = 0;
+      while (head < bfsQ.length) {
+        var curr = bfsQ[head++];
+        var myDrs = ownerDRS[curr];
+        (adj[curr] || []).forEach(function(nb) {
+          if (ownerDRS[nb]) return;
+          var expDrs = detectExplicitDrs(nb, drsSet);
+          if (expDrs && expDrs !== myDrs) return;
+          ownerDRS[nb] = myDrs;
+          treeChildren[curr].push(nb);
+          drawnTreeEdges.add(edgeKey(curr, nb));
+          bfsQ.push(nb);
+        });
+      }
+
+      head = 0;
+      while (head < bfsQ.length) {
+        var curr2 = bfsQ[head++];
+        var myDrs2 = ownerDRS[curr2];
+        (adj[curr2] || []).forEach(function(nb) {
+          if (ownerDRS[nb]) return;
+          ownerDRS[nb] = myDrs2;
+          treeChildren[curr2].push(nb);
+          drawnTreeEdges.add(edgeKey(curr2, nb));
+          bfsQ.push(nb);
+        });
+      }
+
+      var nodeCoords = {};
+      var colX = 600, maxTreeY = 950, svgElements = '';
+
+      drsList.forEach(function(drs) {
+        var topBranches = treeChildren[drs.id] || [];
+        var startX = colX, branchXList = [];
+
+        if (topBranches.length === 0) {
+          branchXList.push(colX);
+          colX += 800;
+        } else {
+          var colQueue = topBranches.map(function(bId, idx) {
+            return { startNode: bId, startY: 185, lineLabel: '⚡ LINE ' + (idx + 1), fromT: null };
+          });
+
+          var lineCounter = topBranches.length + 1;
+          while (colQueue.length > 0) {
+            var colItem = colQueue.shift();
+            var bx = colX;
+            branchXList.push(bx);
+
+            if (!colItem.fromT) {
+              svgElements += renderBadge(bx, colItem.lineLabel, S[drs.id]);
+            } else {
+              svgElements += renderBadge(bx, '⚡ LINE ' + (lineCounter++), S[drs.id]);
+              var pt = colItem.fromT;
+              var tLive = S[pt.id] && A[pt.id] && A[pt.id].status === 'ON';
+              svgElements += renderPipe('M ' + (pt.x + 105) + ' ' + pt.y + ' L ' + bx + ' ' + pt.y + ' L ' + bx + ' ' + (colItem.startY - 25), tLive);
+              svgElements += '<text x="' + Math.round((pt.x + bx)/2) + '" y="' + (pt.y - 10) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#b45309">⚡ T-CONNECT</text>';
+            }
+
+            var cNode = colItem.startNode, curY = colItem.startY, sideToggle = 'right';
+            while (cNode && A[cNode]) {
+              var cAsset = A[cNode], cType = (cAsset.type || '').toUpperCase();
+              nodeCoords[cNode] = { x: bx, y: curY, type: cType };
+
+              if (cType.indexOf('VALVE') !== -1 || cType === 'VC') {
+                svgElements += renderValve(bx, curY, cNode, A, S, F);
+                var kids = treeChildren[cNode] || [];
+                var childConsumers = kids.filter(function(n) {
+                  var nt = ((A[n] && A[n].type) || '').toUpperCase();
+                  return nt.indexOf('VALVE') === -1 && nt !== 'VC';
+                });
+                var childValves = kids.filter(function(n) {
+                  var nt = ((A[n] && A[n].type) || '').toUpperCase();
+                  return nt.indexOf('VALVE') !== -1 || nt === 'VC';
+                });
+
+                var tapY = curY + 75;
+                childConsumers.forEach(function(cid, cIdx) {
+                  var side = (cIdx % 2 === 0) ? 'left' : 'right';
+                  nodeCoords[cid] = { x: bx, y: tapY, type: A[cid].type };
+                  svgElements += renderPipe('M ' + bx + ' ' + (curY+33) + ' L ' + bx + ' ' + tapY, S[cNode] && cAsset.status === 'ON');
+                  svgElements += renderCard(bx, tapY, cid, side, A, S);
+                  if (cIdx % 2 === 1) tapY += 85;
+                });
+                if (childConsumers.length % 2 === 1) tapY += 85;
+
+                var nextY = Math.max(curY + 135, tapY + 30);
+                if (childValves.length > 1) {
+                  for (var vi = 1; vi < childValves.length; vi++) {
+                    colQueue.push({ startNode: childValves[vi], startY: curY + 55, lineLabel: '', fromT: { x: bx, y: curY, id: cNode } });
+                  }
+                }
+                if (childValves.length >= 1) {
+                  svgElements += renderPipe('M ' + bx + ' ' + (curY+33) + ' L ' + bx + ' ' + nextY, S[cNode] && cAsset.status === 'ON');
+                  cNode = childValves[0];
+                  curY = nextY;
+                } else {
+                  cNode = null;
+                }
+              } else {
+                svgElements += renderCard(bx, curY, cNode, sideToggle, A, S);
+                sideToggle = (sideToggle === 'right') ? 'left' : 'right';
+                cNode = null;
+              }
+              if (curY > maxTreeY) maxTreeY = curY;
+            }
+            colX += 780;
+          }
+        }
+
+        var endX = branchXList[branchXList.length - 1];
+        var centerDrsX = Math.round((startX + endX) / 2);
+        drsPositions[drs.id] = centerDrsX;
+        nodeCoords[drs.id] = { x: centerDrsX, y: 25, type: 'DRS' };
+
+        svgElements += renderDRSBox(centerDrsX, 25, drs.id, A, S);
+        if (branchXList.length > 1) {
+          svgElements += renderPipe('M ' + startX + ' 105 L ' + endX + ' 105', S[drs.id]);
+        }
+        colX += 380;
+      });
+
+      var loopIdx = 0, baseLoopY = maxTreeY + 120;
+      pipes.forEach(function(p) {
+        var u = p[0], v = p[1], k = edgeKey(u, v);
+        if (!drawnTreeEdges.has(k) && nodeCoords[u] && nodeCoords[v]) {
+          drawnTreeEdges.add(k);
+          var p1 = nodeCoords[u], p2 = nodeCoords[v];
+          var loopY = baseLoopY + (loopIdx * 55);
+          loopIdx++;
+
+          var uOn = S[u] && (!A[u] || A[u].status === 'ON');
+          var vOn = S[v] && (!A[v] || A[v].status === 'ON');
+          var loopLive = Boolean(uOn || vOn);
+
+          var x1 = p1.x + 105, y1 = p1.y, x2 = p2.x + 105, y2 = p2.y;
+          var outX1 = p1.x + 165, outX2 = p2.x + 165;
+
+          var loopPath = 'M ' + x1 + ' ' + y1 + ' L ' + outX1 + ' ' + y1 + ' L ' + outX1 + ' ' + loopY + ' L ' + outX2 + ' ' + loopY + ' L ' + outX2 + ' ' + y2 + ' L ' + x2 + ' ' + y2;
+          svgElements += renderPipe(loopPath, loopLive);
+          svgElements += '<text x="' + Math.round((outX1 + outX2) / 2) + '" y="' + (loopY - 10) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="14" font-weight="800" fill="#b45309">⚡ RING LOOP CONDUIT: ' + u + ' ⟷ ' + v + '</text>';
+        }
+      });
+
+      var totalSvgH = Math.max(1350, baseLoopY + (loopIdx * 55) + 150);
+      var jumpContainer = document.getElementById('drsJumpButtons');
+      if (jumpContainer) {
+        jumpContainer.innerHTML = drsList.map(function(d) {
+          return '<button type="button" class="zoom-btn" data-id="' + d.id + '" onclick="focusStation(this.getAttribute(\'data-id\'))">⚡ ' + d.id + '</button>';
+        }).join('');
+      }
+
+      var svgW = Math.max(8800, colX + 600);
+      document.getElementById('viewport').innerHTML = '<svg id="mainScadaSvg" viewBox="0 0 ' + svgW + ' ' + totalSvgH + '" width="' + svgW + 'px" height="' + totalSvgH + 'px" style="background:#fff;"><g id="panZoomGroup" transform="translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')">' + svgElements + '</g></svg>';
+    }
+
+    window.onload = function() {
+      setupViewportControls();
+      try {
+        var savedRole = localStorage.getItem('bgl_role');
+        if (savedRole === 'admin' || savedRole === 'user') {
+          currentUserRole = savedRole;
+          document.getElementById('loginOverlay').style.display = 'none';
+          applyRoleUI();
+        }
+      } catch(e) {}
+      fetchLiveSnapshot();
+    };
+  </script>
+</body>
+</html>
