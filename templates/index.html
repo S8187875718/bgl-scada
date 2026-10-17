@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BGL Gas Network Control - SCADA v6.1</title>
+  <title>BGL Gas Network Control - SCADA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -11,15 +11,13 @@
     :root { --bg-page: #f1f5f9; --font-body: 'Inter', sans-serif; --font-tech: 'Chakra Petch', sans-serif; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg-page); font-family: var(--font-body); color: #0f172a; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
-
     .login-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(6px); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-    .login-card { background: #ffffff; width: 350px; padding: 28px; border-radius: 14px; border-top: 5px solid #0284c7; box-shadow: 0 20px 35px rgba(0,0,0,0.35); text-align: center; }
+    .login-card { background: #fff; width: 350px; padding: 28px; border-radius: 14px; border-top: 5px solid #0284c7; box-shadow: 0 20px 35px rgba(0,0,0,0.35); text-align: center; }
     .login-card h2 { font-size: 1.25rem; color: #0c4a6e; font-weight: 800; margin-bottom: 4px; }
     .login-card p { font-size: 0.78rem; color: #64748b; margin-bottom: 18px; }
     .login-field { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; }
-    .login-btn { width: 100%; padding: 10px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.95rem; }
-    .login-btn:hover { background: #0369a1; }
-
+    .login-btn { width: 100%; padding: 11px; background: #16a34a; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.95rem; }
+    .login-btn:hover { background: #15803d; }
     header.bgl-header { background: linear-gradient(180deg, #99cbf7 0%, #bce0fd 35%, #eff7fe 100%); border-bottom: 3px solid #0284c7; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; min-height: 74px; }
     .brand-area { display: flex; align-items: center; gap: 12px; }
     .bgl-logo-img { width: 48px; height: 48px; border-radius: 50%; background: #fff; padding: 2px; border: 2px solid #22c55e; }
@@ -30,8 +28,7 @@
     .role-admin { background: #dcfce7; color: #166534; border: 1.5px solid #86efac; }
     .role-user { background: #e0f2fe; color: #0369a1; border: 1.5px solid #7dd3fc; }
     .logout-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid #ef4444; background: #fff1f2; color: #be123c; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-
-    .admin-bar { background: #ffffff; border-bottom: 1.5px solid #cbd5e1; padding: 8px 16px; display: none; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .admin-bar { background: #fff; border-bottom: 1.5px solid #cbd5e1; padding: 8px 16px; display: none; gap: 8px; flex-wrap: wrap; align-items: center; }
     .adm-btn { padding: 6px 11px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
     .btn-blue { background: #0284c7; color: #fff; }
     .btn-purple { background: #7c3aed; color: #fff; }
@@ -41,8 +38,7 @@
     .btn-slate { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
     .link-box { display: flex; align-items: center; gap: 5px; background: #f8fafc; padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; }
     .link-select { padding: 4px 6px; font-size: 0.72rem; border-radius: 4px; border: 1px solid #cbd5e1; max-width: 140px; }
-
-    .overview-kpi-bar { background: #ffffff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 16px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
+    .overview-kpi-bar { background: #fff; border-bottom: 1.5px solid #d3e5f5; padding: 8px 16px; display: flex; align-items: center; gap: 8px; overflow-x: auto; }
     .kpi-card { border-radius: 8px; padding: 4px 12px; min-width: 74px; text-align: center; }
     .kpi-card .num { font-family: var(--font-tech); font-size: 1.05rem; font-weight: 800; }
     .kpi-card .lbl { font-size: 0.62rem; font-weight: 700; }
@@ -51,27 +47,22 @@
     .kpi-sr { background: #faf5ff; border: 1.5px solid #e9d5ff; color: #7e22ce; }
     .kpi-ipng { background: #fffbeb; border: 1.5px solid #fde68a; color: #b45309; }
     .kpi-cpng { background: #fff1f2; border: 1.5px solid #fecdd3; color: #be123c; }
-
     .main-wrapper { flex: 1; padding: 10px 14px; display: flex; flex-direction: column; gap: 12px; }
     .overview-card { background: #fff; border: 1px solid #d8e8f5; border-radius: 12px; padding: 12px; }
-    .scada-viewport { position: relative; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; width: 100%; height: 720px; overflow: hidden; cursor: grab; touch-action: none; user-select: none; margin-top: 8px; }
+    .scada-viewport { position: relative; background: #fff; border: 1.5px solid #cbd5e1; border-radius: 10px; width: 100%; height: 720px; overflow: hidden; cursor: grab; touch-action: none; user-select: none; margin-top: 8px; }
     .scada-viewport:active { cursor: grabbing; }
     .zoom-toolbar { display: flex; align-items: center; gap: 5px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 3px 8px; flex-wrap: wrap; }
     .zoom-btn { background: #fff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 3px 8px; font-size: 0.72rem; font-weight: 800; cursor: pointer; }
     .zoom-btn:hover { background: #e0f2fe; color: #0284c7; }
-
     #gisMapContainer { width: 100%; height: 420px; border-radius: 10px; border: 1.5px solid #cbd5e1; z-index: 10; }
-
     svg path { fill: none !important; }
     @keyframes flowForward { from { stroke-dashoffset: 40; } to { stroke-dashoffset: 0; } }
     @keyframes flowReverse { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 40; } }
     .pipe-active { stroke: #f59e0b; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
-    .pipe-active-pulse { stroke: #ffffff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 8, 12; animation: flowForward 1.1s linear infinite; }
-    .pipe-active-pulse-rev { stroke: #ffffff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 8, 12; animation: flowReverse 1.1s linear infinite; }
+    .pipe-active-pulse { stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 8, 12; animation: flowForward 1.1s linear infinite; }
+    .pipe-active-pulse-rev { stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 8, 12; animation: flowReverse 1.1s linear infinite; }
     .pipe-inactive { stroke: #cbd5e1; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
     .pid-valve-node { cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
-    .pid-valve-node:hover { filter: brightness(1.08) drop-shadow(0 3px 6px rgba(0,0,0,0.2)); }
-
     .modal-bg { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); display: none; justify-content: center; align-items: center; z-index: 5000; padding: 16px; }
     .modal-box { background: #fff; border-radius: 12px; width: 100%; max-width: 500px; padding: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
     .modal-box.wide { max-width: 920px; }
@@ -92,17 +83,81 @@
 </head>
 <body>
 
-  <!-- 1. CLEAN LOGIN OVERLAY (NO DEFAULT ID/PASSWORD VISIBLE) -->
+  <!-- 1. LOGIN OVERLAY (WITH TOP-LEVEL INSTANT SCRIPT) -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" style="width:60px;height:60px;margin-bottom:8px;">
       <h2>BGL SCADA Login</h2>
       <p>Authorized Gas Network Control</p>
-      <input type="text" id="loginUser" class="login-field" placeholder="Enter Login ID" value="" autocomplete="off">
-      <input type="password" id="loginPass" class="login-field" placeholder="Enter Password" value="" autocomplete="off" onkeydown="if(event.key==='Enter') performLoginNow()">
-      <button type="button" class="login-btn" onclick="performLoginNow()">🔐 Sign In</button>
+      <input type="text" id="loginUser" class="login-field" placeholder="Enter Login ID" autocomplete="off">
+      <input type="password" id="loginPass" class="login-field" placeholder="Enter Password" autocomplete="off" onkeydown="if(event.key==='Enter') handleInstantLogin()">
+      <button type="button" class="login-btn" onclick="handleInstantLogin()">🔐 Sign In</button>
     </div>
   </div>
+
+  <script>
+    var currentUserRole = null;
+    var currentUsername = '';
+    var USER_ACCOUNTS_KEY = 'bgl_custom_accounts_v1';
+
+    function getLocalAccounts() {
+      var base = { 'admin': { pass: 'admin123', role: 'admin' }, 'user': { pass: 'user123', role: 'user' } };
+      try {
+        var saved = JSON.parse(localStorage.getItem(USER_ACCOUNTS_KEY) || '{}');
+        for (var k in saved) base[k.toLowerCase()] = saved[k];
+      } catch(e) {}
+      return base;
+    }
+
+    function handleInstantLogin() {
+      var u = (document.getElementById('loginUser').value || '').trim();
+      var p = (document.getElementById('loginPass').value || '').trim();
+      if (!u || !p) { alert('Login ID mariyu Password enter cheyandi!'); return; }
+
+      var accounts = getLocalAccounts();
+      var acc = accounts[u.toLowerCase()];
+      if (acc && acc.pass === p) {
+        currentUserRole = acc.role;
+        currentUsername = u;
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('loginPass').value = '';
+        try {
+          localStorage.setItem('bgl_role', currentUserRole);
+          localStorage.setItem('bgl_user', currentUsername);
+        } catch(e) {}
+        if (typeof applyRoleUI === 'function') applyRoleUI();
+        if (typeof fetchLiveSnapshot === 'function') fetchLiveSnapshot();
+        return;
+      }
+
+      // Check server DB if not in local cache
+      fetch('/api/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: u, password: p })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res && res.success) {
+          currentUserRole = res.role;
+          currentUsername = res.username;
+          document.getElementById('loginOverlay').style.display = 'none';
+          document.getElementById('loginPass').value = '';
+          try {
+            localStorage.setItem('bgl_role', currentUserRole);
+            localStorage.setItem('bgl_user', currentUsername);
+          } catch(e) {}
+          if (typeof applyRoleUI === 'function') applyRoleUI();
+          if (typeof fetchLiveSnapshot === 'function') fetchLiveSnapshot();
+        } else {
+          alert('Invalid Login ID leda Password!');
+        }
+      })
+      .catch(function() {
+        alert('Invalid Login ID leda Password!');
+      });
+    }
+  </script>
 
   <!-- 2. HEADER -->
   <header class="bgl-header">
@@ -168,11 +223,9 @@
           <button type="button" id="resetAllBtn" style="padding:5px 12px; font-size:0.75rem; font-weight:700; cursor:pointer; border-radius:6px; border:1px solid #cbd5e1; background:#fff;" onclick="triggerReset()">🔄 Reset All ON</button>
         </div>
       </div>
-
       <div class="scada-viewport" id="viewport"></div>
     </div>
 
-    <!-- EMBEDDED GIS MAP PANEL BELOW DIAGRAM -->
     <div class="overview-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
         <h2 style="font-size:0.95rem; font-weight:800; color:#0c4a6e;">🗺️ Live GIS Network & KMZ Pipeline Map</h2>
@@ -223,13 +276,13 @@
     </div>
   </div>
 
-  <!-- MODAL C: MANAGE LOGIN IDs (CREATE ADMIN / USER) -->
+  <!-- MODAL C: MANAGE LOGIN IDs -->
   <div class="modal-bg" id="userModal">
     <div class="modal-box">
       <div class="modal-hdr"><h3>👥 Manage Login IDs (Admin & User)</h3><button type="button" class="close-x" onclick="closeUserModal()">✕</button></div>
       <div class="form-grid" style="margin-bottom:12px;">
-        <div class="form-grp"><label>Login ID / Username *</label><input type="text" id="uNameInput" placeholder="e.g. admin2"></div>
-        <div class="form-grp"><label>Password *</label><input type="text" id="uPassInput" placeholder="Enter Password"></div>
+        <div class="form-grp"><label>Login ID *</label><input type="text" id="uNameInput" placeholder="e.g. admin2"></div>
+        <div class="form-grp"><label>Password *</label><input type="text" id="uPassInput" placeholder="Password"></div>
         <div class="form-grp"><label>Role *</label>
           <select id="uRoleInput">
             <option value="admin">Admin (Full Control)</option>
@@ -250,8 +303,6 @@
   </div>
 
   <script>
-    var currentUserRole = null;
-    var currentUsername = '';
     var scadaData = null;
     var userOverrides = {};
     var drsPositions = {};
@@ -279,44 +330,6 @@
       if (scadaData) renderPAndID();
     }
 
-    function performLoginNow() {
-      var u = (document.getElementById('loginUser').value || '').trim();
-      var p = (document.getElementById('loginPass').value || '').trim();
-      if (!u || !p) { alert('Login ID mariyu Password enter cheyandi!'); return; }
-
-      fetch('/api/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username: u, password: p })
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        if (res.success) {
-          currentUserRole = res.role;
-          currentUsername = res.username;
-          userOverrides = {};
-          document.getElementById('loginOverlay').style.display = 'none';
-          document.getElementById('loginPass').value = '';
-          try {
-            localStorage.setItem('bgl_role', currentUserRole);
-            localStorage.setItem('bgl_user', currentUsername);
-          } catch(e) {}
-          applyRoleUI();
-          fetchLiveSnapshot();
-        } else {
-          alert(res.message || 'Invalid Login ID or Password!');
-        }
-      })
-      .catch(function() {
-        if (u.toLowerCase() === 'admin' && p === 'admin123') { currentUserRole = 'admin'; currentUsername = 'admin'; }
-        else if (u.toLowerCase() === 'user' && p === 'user123') { currentUserRole = 'user'; currentUsername = 'user'; }
-        else { alert('Invalid Login ID or Password!'); return; }
-        document.getElementById('loginOverlay').style.display = 'none';
-        applyRoleUI();
-        fetchLiveSnapshot();
-      });
-    }
-
     function logoutUser() {
       currentUserRole = null;
       currentUsername = '';
@@ -327,37 +340,54 @@
 
     function openUserModal() {
       document.getElementById('userModal').style.display = 'flex';
+      renderLocalUsersTable();
       fetch('/api/users').then(function(r) { return r.json(); }).then(function(d) {
-        if (d.users) renderUserTable(d.users);
-      });
+        if (d && d.users) renderUserTable(d.users);
+      }).catch(function() {});
     }
     function closeUserModal() { document.getElementById('userModal').style.display = 'none'; }
+
+    function renderLocalUsersTable() {
+      var accs = getLocalAccounts();
+      var list = Object.keys(accs).map(function(k) { return { username: k, role: accs[k].role }; });
+      renderUserTable(list);
+    }
+
     function renderUserTable(users) {
       document.getElementById('userTableBody').innerHTML = users.map(function(u) {
         return '<tr><td><b>' + u.username + '</b></td><td>' + u.role.toUpperCase() + '</td><td><button class="act-btn act-del" data-u="' + u.username + '" onclick="deleteUserAccount(this.getAttribute(\'data-u\'))">🗑️ Delete</button></td></tr>';
       }).join('');
     }
+
     function saveUserAccount() {
       var u = document.getElementById('uNameInput').value.trim();
       var p = document.getElementById('uPassInput').value.trim();
       var r = document.getElementById('uRoleInput').value;
-      if (!u || !p) { alert('Username mariyu Password ivvali!'); return; }
+      if (!u || !p) { alert('Login ID mariyu Password ivvali!'); return; }
+      try {
+        var saved = JSON.parse(localStorage.getItem(USER_ACCOUNTS_KEY) || '{}');
+        saved[u.toLowerCase()] = { pass: p, role: r };
+        localStorage.setItem(USER_ACCOUNTS_KEY, JSON.stringify(saved));
+      } catch(e) {}
+      document.getElementById('uNameInput').value = '';
+      document.getElementById('uPassInput').value = '';
+      renderLocalUsersTable();
       fetch('/api/users/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: u, password: p, role: r }) })
         .then(function(res) { return res.json(); })
-        .then(function(d) {
-          alert(d.message);
-          if (d.success) {
-            document.getElementById('uNameInput').value = '';
-            document.getElementById('uPassInput').value = '';
-            renderUserTable(d.users);
-          }
-        });
+        .then(function(d) { if (d && d.users) renderUserTable(d.users); })
+        .catch(function() {});
+      alert('Login ID "' + u + '" (' + r.toUpperCase() + ') Created!');
     }
+
     function deleteUserAccount(u) {
-      if (!confirm('Login ID "' + u + '" ni delete cheyala?')) return;
-      fetch('/api/users/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: u }) })
-        .then(function(res) { return res.json(); })
-        .then(function(d) { alert(d.message); if (d.users) renderUserTable(d.users); });
+      if (u.toLowerCase() === 'admin') { alert('Main admin ID delete cheyalemu!'); return; }
+      try {
+        var saved = JSON.parse(localStorage.getItem(USER_ACCOUNTS_KEY) || '{}');
+        delete saved[u.toLowerCase()];
+        localStorage.setItem(USER_ACCOUNTS_KEY, JSON.stringify(saved));
+      } catch(e) {}
+      renderLocalUsersTable();
+      fetch('/api/users/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: u }) }).catch(function() {});
     }
 
     function syncUserToAdminLive() {
@@ -367,10 +397,8 @@
     }
 
     function saveBrowserBackup(data) {
-      if (!data || !data.assets) return;
-      if (Object.keys(userOverrides).length > 0) return;
-      var count = Object.keys(data.assets).length;
-      if (count > 12) {
+      if (!data || !data.assets || Object.keys(userOverrides).length > 0) return;
+      if (Object.keys(data.assets).length > 12) {
         try {
           localStorage.setItem(BACKUP_KEY, JSON.stringify({
             assets: data.assets,
@@ -390,13 +418,8 @@
 
     function focusStation(stn) {
       var vpWidth = document.getElementById('viewport').clientWidth || 1200;
-      if (stn === 'ALL') {
-        currentZoom = 0.22; panX = 20; panY = 20;
-      } else if (drsPositions[stn] !== undefined) {
-        currentZoom = 0.80;
-        panX = -(drsPositions[stn] * currentZoom) + (vpWidth / 2);
-        panY = 20;
-      }
+      if (stn === 'ALL') { currentZoom = 0.22; panX = 20; panY = 20; }
+      else if (drsPositions[stn] !== undefined) { currentZoom = 0.80; panX = -(drsPositions[stn] * currentZoom) + (vpWidth / 2); panY = 20; }
       changeZoom(0);
     }
 
@@ -416,14 +439,10 @@
 
     function fetchLiveSnapshot() {
       if (currentUserRole === 'user' && Object.keys(userOverrides).length > 0) {
-        fetch('/api/simulate', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ overrides: userOverrides })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) { scadaData = data; refreshUI(true); })
-        .catch(function() {});
+        fetch('/api/simulate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ overrides: userOverrides }) })
+          .then(function(r) { return r.json(); })
+          .then(function(data) { scadaData = data; refreshUI(true); })
+          .catch(function() {});
         return;
       }
 
@@ -433,24 +452,15 @@
           var serverCount = data && data.assets ? Object.keys(data.assets).length : 0;
           var rawBackup = null;
           try { rawBackup = localStorage.getItem(BACKUP_KEY); } catch(e) {}
-
           if (rawBackup && serverCount <= 12) {
             var parsed = JSON.parse(rawBackup);
-            var backupCount = parsed && parsed.assets ? Object.keys(parsed.assets).length : 0;
-            if (backupCount > serverCount) {
-              return fetch('/api/restore-backup', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: rawBackup
-              }).then(function(r) { return r.json(); });
+            if (parsed && parsed.assets && Object.keys(parsed.assets).length > serverCount) {
+              return fetch('/api/restore-backup', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: rawBackup }).then(function(r) { return r.json(); });
             }
           }
           return data;
         })
-        .then(function(finalData) {
-          scadaData = finalData;
-          refreshUI(false);
-        })
+        .then(function(finalData) { scadaData = finalData; refreshUI(false); })
         .catch(function() {});
     }
 
@@ -490,9 +500,7 @@
 
     function updateDropdowns() {
       var ids = Object.keys(scadaData.assets).sort();
-      var html = ids.map(function(id) {
-        return '<option value="' + id + '">' + id + ' (' + scadaData.assets[id].type + ')</option>';
-      }).join('');
+      var html = ids.map(function(id) { return '<option value="' + id + '">' + id + ' (' + scadaData.assets[id].type + ')</option>'; }).join('');
       document.getElementById('linkSource').innerHTML = html;
       document.getElementById('linkTarget').innerHTML = html;
       document.getElementById('fAssetParent').innerHTML = '<option value="">-- None --</option>' + html;
@@ -585,12 +593,7 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
           alert(data.message);
-          if (data.success) {
-            scadaData = data;
-            if (leafletMap) leafletMap._userMoved = false;
-            saveBrowserBackup(data);
-            refreshUI(false);
-          }
+          if (data.success) { scadaData = data; if (leafletMap) leafletMap._userMoved = false; saveBrowserBackup(data); refreshUI(false); }
           event.target.value = '';
         });
     }
@@ -598,23 +601,15 @@
     function toggleAsset(id, curStatus) {
       var nextStatus = (curStatus === 'ON') ? 'OFF' : 'ON';
       if (currentUserRole === 'admin') {
-        fetch('/api/toggle', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ asset_id: id, status: nextStatus })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) { scadaData = data; refreshUI(false); });
+        fetch('/api/toggle', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: nextStatus }) })
+          .then(function(r) { return r.json(); })
+          .then(function(data) { scadaData = data; refreshUI(false); });
       } else {
         userOverrides[id] = nextStatus;
         applyRoleUI();
-        fetch('/api/simulate', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ overrides: userOverrides })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) { scadaData = data; refreshUI(true); });
+        fetch('/api/simulate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ overrides: userOverrides }) })
+          .then(function(r) { return r.json(); })
+          .then(function(data) { scadaData = data; refreshUI(true); });
       }
     }
 
@@ -630,9 +625,7 @@
 
     function triggerReset() {
       if (currentUserRole === 'admin') {
-        fetch('/api/reset', { method: 'POST' })
-          .then(function(r) { return r.json(); })
-          .then(function(data) { scadaData = data; refreshUI(false); });
+        fetch('/api/reset', { method: 'POST' }).then(function(r) { return r.json(); }).then(function(data) { scadaData = data; refreshUI(false); });
       } else {
         syncUserToAdminLive();
       }
@@ -643,42 +636,32 @@
       var a = scadaData && scadaData.assets ? scadaData.assets[id] : null;
       var loc = a && a.location ? a.location.trim() : '';
       if (!loc) {
-        if (currentUserRole === 'admin') {
-          if (confirm(id + ' ki Location set cheyaledhu. Ippude set cheyala?')) openAssetModal(id);
-        } else {
-          alert('Ee asset ki Location coordinates inka add cheyaledhu.');
-        }
+        if (currentUserRole === 'admin') { if (confirm(id + ' ki Location set cheyaledhu. Ippude set cheyala?')) openAssetModal(id); }
+        else alert('Location coordinates inka add cheyaledhu.');
         return;
       }
-      var url = loc.indexOf('http') === 0 ? loc : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc);
-      window.open(url, '_blank');
+      window.open(loc.indexOf('http') === 0 ? loc : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc), '_blank');
     }
 
     function parseLatLng(str) {
       if (!str) return null;
       var m = str.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
-      if (m) return [parseFloat(m[1]), parseFloat(m[2])];
-      return null;
+      return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
     }
 
     function updateGISMap() {
       if (typeof L === 'undefined' || !scadaData || !scadaData.assets) return;
       if (!leafletMap) {
         leafletMap = L.map('gisMapContainer').setView([17.6231, 78.5253], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap'
-        }).addTo(leafletMap);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(leafletMap);
         mapKmzLayer = L.layerGroup().addTo(leafletMap);
         mapMarkersLayer = L.layerGroup().addTo(leafletMap);
       }
       mapKmzLayer.clearLayers();
       mapMarkersLayer.clearLayers();
-      var bounds = [];
-      var pinCount = 0;
-      var lineCount = 0;
+      var bounds = [], pinCount = 0, lineCount = 0;
 
-      var overlays = scadaData.kmz_overlays || [];
-      overlays.forEach(function(ov) {
+      (scadaData.kmz_overlays || []).forEach(function(ov) {
         try {
           var coords = JSON.parse(ov.coords_json);
           if (ov.geom_type === 'line' && coords.length >= 2) {
@@ -688,8 +671,7 @@
             mapKmzLayer.addLayer(poly);
             coords.forEach(function(c) { bounds.push(c); });
           } else if (ov.geom_type === 'point' && coords.length === 2) {
-            pinCount++;
-            bounds.push(coords);
+            pinCount++; bounds.push(coords);
             var kmzPt = L.circleMarker(coords, { radius: 6, fillColor: '#7c3aed', color: '#fff', weight: 1.5, fillOpacity: 0.9 });
             kmzPt.bindPopup('<b>📍 KMZ Point:</b> ' + (ov.name || 'Point'));
             mapKmzLayer.addLayer(kmzPt);
@@ -700,17 +682,10 @@
       Object.values(scadaData.assets).forEach(function(a) {
         var coords = parseLatLng(a.location);
         if (coords) {
-          pinCount++;
-          bounds.push(coords);
+          pinCount++; bounds.push(coords);
           var isOn = scadaData.supply && scadaData.supply[a.id];
           var color = (a.type === 'DRS') ? '#d97706' : (isOn ? '#16a34a' : '#ef4444');
-          var marker = L.circleMarker(coords, {
-            radius: a.type === 'DRS' ? 9 : 6,
-            fillColor: color,
-            color: '#ffffff',
-            weight: 2,
-            fillOpacity: 0.95
-          });
+          var marker = L.circleMarker(coords, { radius: a.type === 'DRS' ? 9 : 6, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.95 });
           var gmapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a.location);
           marker.bindPopup('<b>' + a.id + ' - ' + (a.name || '') + '</b><br>Type: ' + a.type + ' | Status: ' + a.status + '<br><a href="' + gmapUrl + '" target="_blank" style="font-weight:bold;color:#0284c7;">📍 Open in Google Maps ↗</a>');
           mapMarkersLayer.addLayer(marker);
@@ -736,8 +711,7 @@
 
     function renderDRSBox(x, y, id, A, S) {
       var d = A[id]; if (!d) return '';
-      var isOn = d.status === 'ON';
-      var hasLoc = Boolean(d.location && d.location.trim());
+      var isOn = d.status === 'ON', hasLoc = Boolean(d.location && d.location.trim());
       return '<g>' +
         '<rect x="' + (x-130) + '" y="' + (y-5) + '" width="260" height="64" rx="14" fill="#fffbeb" stroke="' + (isOn?'#f59e0b':'#ef4444') + '" stroke-width="2.8"/>' +
         '<text x="' + (x-115) + '" y="' + (y+18) + '" font-family="var(--font-tech)" font-weight="800" font-size="14" fill="#92400e" data-id="' + id + '" data-p="' + (d.pressure||4) + '" onclick="promptPressure(this.getAttribute(\'data-id\'), this.getAttribute(\'data-p\'))" style="cursor:pointer;">⚡ ' + id + ' ' + (d.name||'').slice(0,14) + '</text>' +
@@ -758,8 +732,7 @@
       var v = A[id]; if (!v) return '';
       var isOn = v.status === 'ON', hasGas = S[id], src = F[id];
       var stroke = isOn ? (hasGas ? '#10b981' : '#f59e0b') : '#ef4444';
-      var disp = id.replace(/^(CG|S\d+)-/, '');
-      var hasLoc = Boolean(v.location && v.location.trim());
+      var disp = id.replace(/^(CG|S\d+)-/, ''), hasLoc = Boolean(v.location && v.location.trim());
       return '<g class="pid-valve-node" data-id="' + id + '" data-st="' + v.status + '" onclick="toggleAsset(this.getAttribute(\'data-id\'), this.getAttribute(\'data-st\'))">' +
         '<rect x="' + (x-105) + '" y="' + (y-24) + '" width="210" height="48" rx="22" fill="#fff" stroke="' + stroke + '" stroke-width="2.8"/>' +
         '<circle cx="' + (x-85) + '" cy="' + y + '" r="8.5" fill="' + stroke + '"/>' +
@@ -781,10 +754,8 @@
       var bdr = '#a855f7', bg = '#faf5ff', sym = '🏠';
       if (t.indexOf('IPNG') !== -1) { bdr = '#0284c7'; bg = '#f0f9ff'; sym = '🏭'; }
       else if (t.indexOf('CPNG') !== -1) { bdr = '#f97316'; bg = '#fff7ed'; sym = '🏨'; }
-      var endX = side === 'left' ? px - 50 : px + 50;
-      var cx = side === 'left' ? endX - 250 : endX;
-      var nm = (c.name || id).slice(0, 21);
-      var hasLoc = Boolean(c.location && c.location.trim());
+      var endX = side === 'left' ? px - 50 : px + 50, cx = side === 'left' ? endX - 250 : endX;
+      var nm = (c.name || id).slice(0, 21), hasLoc = Boolean(c.location && c.location.trim());
       return renderPipe('M ' + px + ' ' + ty + ' L ' + endX + ' ' + ty, on, false) +
         '<circle cx="' + px + '" cy="' + ty + '" r="4.5" fill="#f59e0b"/>' +
         '<g data-id="' + id + '" onclick="if(currentUserRole===\'admin\') openAssetModal(this.getAttribute(\'data-id\'))" style="cursor:pointer;">' +
@@ -806,13 +777,10 @@
     }
 
     function edgeKey(u, v) { return u < v ? (u + '||' + v) : (v + '||' + u); }
-
     function detectExplicitDrs(id, drsSet) {
       var m = id.match(/(?:^|-)((?:D\d+))(?:-|$)/i);
-      if (m && drsSet.has(m[1].toUpperCase())) return m[1].toUpperCase();
-      return null;
+      return (m && drsSet.has(m[1].toUpperCase())) ? m[1].toUpperCase() : null;
     }
-
     function isValveNode(id, A) {
       if (!A[id]) return false;
       var t = (A[id].type || '').toUpperCase();
@@ -825,24 +793,17 @@
       var rawPipes = scadaData.pipelines || [];
 
       var dirAdj = {}, undirAdj = {};
-      Object.keys(A).forEach(function(k) {
-        if (!isUpstreamNode(k, A)) { dirAdj[k] = []; undirAdj[k] = []; }
-      });
+      Object.keys(A).forEach(function(k) { if (!isUpstreamNode(k, A)) { dirAdj[k] = []; undirAdj[k] = []; } });
 
       var validPipes = [];
       rawPipes.forEach(function(p) {
         var u = p[0], v = p[1];
         if (!A[u] || !A[v] || isUpstreamNode(u, A) || isUpstreamNode(v, A)) return;
         validPipes.push([u, v]);
-        dirAdj[u].push(v);
-        undirAdj[u].push(v);
-        undirAdj[v].push(u);
+        dirAdj[u].push(v); undirAdj[u].push(v); undirAdj[v].push(u);
       });
 
-      var drsList = Object.values(A).filter(function(a) {
-        return !isUpstreamNode(a.id, A) && (a.type||'').toUpperCase() === 'DRS';
-      }).sort(function(a,b) { return a.id.localeCompare(b.id); });
-
+      var drsList = Object.values(A).filter(function(a) { return !isUpstreamNode(a.id, A) && (a.type||'').toUpperCase() === 'DRS'; }).sort(function(a,b) { return a.id.localeCompare(b.id); });
       var drsSet = new Set(drsList.map(function(d) { return d.id.toUpperCase(); }));
       drsPositions = {};
 
@@ -854,45 +815,33 @@
         var q = [d.id];
         while (q.length > 0) {
           var curr = q.shift();
-          var kids = (dirAdj[curr] || []).slice().sort();
-          kids.forEach(function(nb) {
+          (dirAdj[curr] || []).slice().sort().forEach(function(nb) {
             if (ownerDRS[nb] || (A[nb].type||'').toUpperCase() === 'DRS') return;
             var expDrs = detectExplicitDrs(nb, drsSet);
             if (expDrs && expDrs !== d.id.toUpperCase()) return;
-            ownerDRS[nb] = d.id;
-            treeChildren[curr].push(nb);
-            drawnTreeEdges.add(edgeKey(curr, nb));
-            q.push(nb);
+            ownerDRS[nb] = d.id; treeChildren[curr].push(nb); drawnTreeEdges.add(edgeKey(curr, nb)); q.push(nb);
           });
         }
       });
 
-      var bfsQ = Object.keys(ownerDRS);
-      var head = 0;
+      var bfsQ = Object.keys(ownerDRS), head = 0;
       while (head < bfsQ.length) {
-        var curr2 = bfsQ[head++];
-        var myDrs2 = ownerDRS[curr2];
+        var curr2 = bfsQ[head++], myDrs2 = ownerDRS[curr2];
         (undirAdj[curr2] || []).forEach(function(nb) {
           if (ownerDRS[nb] || (A[nb].type||'').toUpperCase() === 'DRS') return;
           var expDrs = detectExplicitDrs(nb, drsSet);
           if (expDrs && expDrs !== myDrs2.toUpperCase()) return;
-          ownerDRS[nb] = myDrs2;
-          treeChildren[curr2].push(nb);
-          drawnTreeEdges.add(edgeKey(curr2, nb));
-          bfsQ.push(nb);
+          ownerDRS[nb] = myDrs2; treeChildren[curr2].push(nb); drawnTreeEdges.add(edgeKey(curr2, nb)); bfsQ.push(nb);
         });
       }
 
-      var nodeCoords = {};
-      var colX = 550, maxTreeY = 900, svgElements = '';
+      var nodeCoords = {}, colX = 550, maxTreeY = 900, svgElements = '';
 
       drsList.forEach(function(drs) {
         var rawBranches = (treeChildren[drs.id] || []).filter(function(bId) { return Boolean(A[bId]); });
         var directConsumers = rawBranches.filter(function(bId) { return !isValveNode(bId, A); });
         var valveBranches = rawBranches.filter(function(bId) { return isValveNode(bId, A); });
-
-        var startX = colX;
-        var mainHeaderCols = [];
+        var startX = colX, mainHeaderCols = [];
 
         if (directConsumers.length > 0) {
           var spurX = colX;
@@ -912,9 +861,7 @@
           mainHeaderCols.push({ x: colX, id: drs.id });
           colX += 760;
         } else {
-          var colQueue = valveBranches.map(function(bId, idx) {
-            return { startNode: bId, startY: 185, lineNum: idx + 1, fromT: null };
-          });
+          var colQueue = valveBranches.map(function(bId, idx) { return { startNode: bId, startY: 185, lineNum: idx + 1, fromT: null }; });
 
           while (colQueue.length > 0) {
             var colItem = colQueue.shift();
@@ -925,22 +872,17 @@
               mainHeaderCols.push({ x: bx, id: colItem.startNode });
               var topNode = colItem.startNode;
               var branchLive = Boolean(S[drs.id] && S[topNode] && A[topNode].status === 'ON');
-              var revHeaderToTop = isReverse(drs.id, topNode, R);
-              svgElements += renderBadge(bx, '⚡ LINE ' + colItem.lineNum, branchLive, revHeaderToTop);
+              svgElements += renderBadge(bx, '⚡ LINE ' + colItem.lineNum, branchLive, isReverse(drs.id, topNode, R));
             } else {
               var pt = colItem.fromT;
               var tLive = Boolean(S[pt.id] && A[pt.id] && A[pt.id].status === 'ON' && S[colItem.startNode]);
-              var revT = isReverse(pt.id, colItem.startNode, R);
               var routeY = pt.y - 36;
               var tPath = 'M ' + (pt.x + 105) + ' ' + pt.y + ' L ' + (pt.x + 135) + ' ' + pt.y + ' L ' + (pt.x + 135) + ' ' + routeY + ' L ' + bx + ' ' + routeY + ' L ' + bx + ' ' + (colItem.startY - 24);
-              svgElements += renderPipe(tPath, tLive, revT);
+              svgElements += renderPipe(tPath, tLive, isReverse(pt.id, colItem.startNode, R));
               svgElements += '<text x="' + Math.round((pt.x + 135 + bx)/2) + '" y="' + (routeY - 8) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#b45309">⚡ T-CONNECT</text>';
             }
 
-            // Stack valves cleanly in series down the column (eliminates crossing T-connects and double lines!)
-            var seriesQueue = [colItem.startNode];
-            var curY = colItem.startY;
-            var prevValveId = null, prevValveBottomY = 0;
+            var seriesQueue = [colItem.startNode], curY = colItem.startY, prevValveId = null, prevValveBottomY = 0;
 
             while (seriesQueue.length > 0) {
               var cNode = seriesQueue.shift();
@@ -950,8 +892,7 @@
 
               if (prevValveId) {
                 var segLive = Boolean(S[prevValveId] && A[prevValveId].status === 'ON' && S[cNode]);
-                var segRev = isReverse(prevValveId, cNode, R);
-                svgElements += renderPipe('M ' + bx + ' ' + prevValveBottomY + ' L ' + bx + ' ' + (curY - 24), segLive, segRev);
+                svgElements += renderPipe('M ' + bx + ' ' + prevValveBottomY + ' L ' + bx + ' ' + (curY - 24), segLive, isReverse(prevValveId, cNode, R));
               }
 
               if (isValveNode(cNode, A)) {
@@ -971,5 +912,90 @@
                 if (childConsumers.length % 2 === 1) tapY += 72;
 
                 var nextY = Math.max(curY + 125, tapY + 25);
+                var tBranchValves = childValves.filter(function(cv) { return cv.toUpperCase().indexOf('D01-PE05') !== -1 && cNode.toUpperCase().indexOf('PE04') !== -1; });
+                var sameColValves = childValves.filter(function(cv) { return tBranchValves.indexOf(cv) === -1; });
 
-                // Only spawn an adjacent T-branch column if explicitly CG
+                tBranchValves.forEach(function(tv) {
+                  colQueue.unshift({ startNode: tv, startY: curY + 60, lineNum: 0, fromT: { x: bx, y: curY, id: cNode } });
+                });
+                if (sameColValves.length > 0) seriesQueue.unshift.apply(seriesQueue, sameColValves);
+
+                prevValveId = cNode; prevValveBottomY = curY + 24; curY = nextY;
+              } else {
+                svgElements += renderCard(bx, curY, cNode, 'right', A, S);
+                curY += 80;
+              }
+              if (curY > maxTreeY) maxTreeY = curY;
+            }
+            colX += 760;
+          }
+        }
+
+        var firstMainX = mainHeaderCols.length > 0 ? mainHeaderCols[0].x : startX;
+        var lastMainX = mainHeaderCols.length > 0 ? mainHeaderCols[mainHeaderCols.length - 1].x : startX;
+        var centerDrsX = Math.round((firstMainX + lastMainX) / 2);
+        drsPositions[drs.id] = centerDrsX;
+        nodeCoords[drs.id] = { x: centerDrsX, y: 25 };
+
+        svgElements += renderDRSBox(centerDrsX, 25, drs.id, A, S);
+
+        var headerFeedX = centerDrsX;
+        if (drs.status !== 'ON' && mainHeaderCols.length > 0) {
+          var bestRank = 999999;
+          mainHeaderCols.forEach(function(mc) { if (R[mc.id] && R[mc.id] < bestRank) { bestRank = R[mc.id]; headerFeedX = mc.x; } });
+        }
+        if (mainHeaderCols.length > 1) {
+          for (var hi = 0; hi < mainHeaderCols.length - 1; hi++) {
+            var cA = mainHeaderCols[hi], cB = mainHeaderCols[hi + 1];
+            svgElements += renderPipe('M ' + cA.x + ' 105 L ' + cB.x + ' 105', S[drs.id], ((cA.x + cB.x) / 2) < headerFeedX);
+          }
+        }
+        colX += 360;
+      });
+
+      var loopIdx = 0, baseLoopY = maxTreeY + 90, drawnPairLoops = new Set();
+      validPipes.forEach(function(p) {
+        var u = p[0], v = p[1], k = edgeKey(u, v);
+        if (drawnTreeEdges.has(k) || !isValveNode(u, A) || !isValveNode(v, A) || !nodeCoords[u] || !nodeCoords[v]) return;
+        var drsPairKey = edgeKey(ownerDRS[u] || u, ownerDRS[v] || v);
+        if (ownerDRS[u] === ownerDRS[v] || drawnPairLoops.has(drsPairKey)) return;
+        drawnPairLoops.add(drsPairKey); drawnTreeEdges.add(k);
+
+        var p1 = nodeCoords[u], p2 = nodeCoords[v], loopY = baseLoopY + (loopIdx * 55);
+        loopIdx++;
+        var loopLive = Boolean(S[u] && (!A[u] || A[u].status === 'ON') && S[v] && (!A[v] || A[v].status === 'ON'));
+        var corrX1 = p1.x + 345, corrX2 = p2.x + 345;
+        var loopPath = 'M ' + (p1.x + 105) + ' ' + p1.y + ' L ' + corrX1 + ' ' + p1.y + ' L ' + corrX1 + ' ' + loopY + ' L ' + corrX2 + ' ' + loopY + ' L ' + corrX2 + ' ' + p2.y + ' L ' + (p2.x + 105) + ' ' + p2.y;
+        svgElements += renderPipe(loopPath, loopLive, isReverse(u, v, R));
+        svgElements += '<text x="' + Math.round((corrX1 + corrX2) / 2) + '" y="' + (loopY - 10) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="13.5" font-weight="800" fill="#b45309">⚡ RING LOOP CONDUIT: ' + u + ' ⟷ ' + v + '</text>';
+      });
+
+      var totalSvgH = Math.max(1200, baseLoopY + (loopIdx * 55) + 120);
+      var jumpContainer = document.getElementById('drsJumpButtons');
+      if (jumpContainer) {
+        jumpContainer.innerHTML = drsList.map(function(d) { return '<button type="button" class="zoom-btn" data-id="' + d.id + '" onclick="focusStation(this.getAttribute(\'data-id\'))">⚡ ' + d.id + '</button>'; }).join('');
+      }
+      var svgW = Math.max(8800, colX + 600);
+      document.getElementById('viewport').innerHTML = '<svg id="mainScadaSvg" viewBox="0 0 ' + svgW + ' ' + totalSvgH + '" width="' + svgW + 'px" height="' + totalSvgH + 'px" style="background:#fff;"><g id="panZoomGroup" transform="translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')">' + svgElements + '</g></svg>';
+    }
+
+    window.onload = function() {
+      setupViewportControls();
+      try {
+        var savedRole = localStorage.getItem('bgl_role');
+        var savedUser = localStorage.getItem('bgl_user');
+        if (savedRole === 'admin' || savedRole === 'user') {
+          currentUserRole = savedRole;
+          currentUsername = savedUser || savedRole;
+          document.getElementById('loginOverlay').style.display = 'none';
+          applyRoleUI();
+        }
+      } catch(e) {}
+      fetchLiveSnapshot();
+      setInterval(function() {
+        if (currentUserRole === 'user' && Object.keys(userOverrides).length === 0) fetchLiveSnapshot();
+      }, 4000);
+    };
+  </script>
+</body>
+</html>
