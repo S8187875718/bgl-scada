@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BGL Gas Network Control - Industrial P&ID SCADA</title>
+  <title>BGL Gas Network Control - SCADA v2.0</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Chakra+Petch:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -15,8 +15,8 @@
     .login-card h2 { font-size: 1.25rem; color: #0c4a6e; font-weight: 800; margin-bottom: 4px; }
     .login-card p { font-size: 0.78rem; color: #64748b; margin-bottom: 16px; }
     .login-field { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; }
-    .login-btn { width: 100%; padding: 10px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.9rem; }
-    .login-btn:hover { background: #0369a1; }
+    .login-btn { width: 100%; padding: 10px; background: #16a34a; color: #fff; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.95rem; }
+    .login-btn:hover { background: #15803d; }
     .login-hint { margin-top: 12px; font-size: 0.72rem; color: #475569; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px dashed #cbd5e1; }
 
     header.bgl-header { background: linear-gradient(180deg, #99cbf7 0%, #bce0fd 35%, #eff7fe 100%); border-bottom: 3px solid #0284c7; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; min-height: 74px; }
@@ -86,26 +86,46 @@
 </head>
 <body>
 
-  <!-- LOGIN OVERLAY -->
+  <!-- 1. LOGIN OVERLAY (WITH STANDALONE TOP SCRIPT SO IT CAN NEVER FAIL) -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" style="width:60px;height:60px;margin-bottom:8px;">
-      <h2>BGL SCADA Login</h2>
+      <h2>BGL SCADA Login v2.0</h2>
       <p>Industrial P&ID Gas Network Control</p>
       <input type="text" id="loginUser" class="login-field" placeholder="Username" value="admin">
-      <input type="password" id="loginPass" class="login-field" placeholder="Password" value="admin123" onkeydown="if(event.key==='Enter') performLogin()">
-      <button type="button" class="login-btn" onclick="performLogin()">🔐 Sign In</button>
+      <input type="password" id="loginPass" class="login-field" placeholder="Password" value="admin123" onkeydown="if(event.key==='Enter') performLoginNow()">
+      <button type="button" class="login-btn" onclick="performLoginNow()">🔐 Sign In Now</button>
       <div class="login-hint"><b>Admin:</b> admin / admin123<br><b>User:</b> user / user123</div>
     </div>
   </div>
 
-  <!-- HEADER -->
+  <script>
+    var currentUserRole = null;
+    function performLoginNow() {
+      var u = (document.getElementById('loginUser').value || '').trim().toLowerCase();
+      var p = (document.getElementById('loginPass').value || '').trim();
+      if (u === 'admin' && p === 'admin123') {
+        currentUserRole = 'admin';
+      } else if (u === 'user' && p === 'user123') {
+        currentUserRole = 'user';
+      } else {
+        alert('Invalid Username or Password! Use admin / admin123');
+        return;
+      }
+      document.getElementById('loginOverlay').style.display = 'none';
+      try { localStorage.setItem('bgl_role', currentUserRole); } catch(e) {}
+      if (typeof applyRoleUI === 'function') applyRoleUI();
+      if (typeof fetchLiveSnapshot === 'function') fetchLiveSnapshot();
+    }
+  </script>
+
+  <!-- 2. HEADER -->
   <header class="bgl-header">
     <div class="brand-area">
       <img src="https://www.bglgas.com/wp-content/uploads/2026/04/cropped-Frame-3.png" class="bgl-logo-img" alt="BGL">
       <div class="brand-text">
         <h1>BGL Gas Network Control</h1>
-        <p>Industrial SCADA Engine (FastAPI + SQLite DB)</p>
+        <p>Industrial SCADA Engine v2.0 (FastAPI + SQLite DB)</p>
       </div>
     </div>
     <div class="user-area">
@@ -114,7 +134,7 @@
     </div>
   </header>
 
-  <!-- ADMIN BAR -->
+  <!-- 3. ADMIN BAR -->
   <div class="admin-bar" id="adminBar">
     <button type="button" class="adm-btn btn-blue" onclick="openAssetModal()">➕ Create Asset</button>
     <button type="button" class="adm-btn btn-purple" onclick="openManagerModal()">📋 Manage Assets</button>
@@ -132,7 +152,7 @@
     <button type="button" class="adm-btn btn-slate" onclick="loadDefaultData()">🔄 Restore Default</button>
   </div>
 
-  <!-- KPI BAR -->
+  <!-- 4. KPI BAR -->
   <div class="overview-kpi-bar">
     <div style="font-size:0.85rem; font-weight:800; margin-right:8px;">🌳 Network Overview:</div>
     <div class="kpi-card kpi-drs"><div class="num" id="kpiDrs">0</div><div class="lbl">DRS Stations</div></div>
@@ -142,7 +162,7 @@
     <div class="kpi-card kpi-cpng"><div class="num" id="kpiCpng">0</div><div class="lbl">CPNG</div></div>
   </div>
 
-  <!-- MAIN SCHEMATIC -->
+  <!-- 5. MAIN SCHEMATIC -->
   <div class="main-wrapper">
     <div class="overview-card">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -206,32 +226,10 @@
   </div>
 
   <script>
-    var currentUserRole = null;
     var scadaData = null;
     var drsPositions = {};
     var panX = 40, panY = 20, currentZoom = 0.85;
     var isDragging = false, startMouseX = 0, startMouseY = 0;
-
-    // 1. INSTANT LOGIN (Works 100% even if backend is waking up)
-    function performLogin() {
-      var u = (document.getElementById('loginUser').value || '').trim().toLowerCase();
-      var p = (document.getElementById('loginPass').value || '').trim();
-
-      if (u === 'admin' && p === 'admin123') {
-        currentUserRole = 'admin';
-      } else if (u === 'user' && p === 'user123') {
-        currentUserRole = 'user';
-      } else {
-        alert('Invalid Username leda Password! (admin / admin123 leda user / user123 vadandi)');
-        return;
-      }
-
-      // Hide overlay FIRST so UI never gets stuck
-      document.getElementById('loginOverlay').style.display = 'none';
-      try { localStorage.setItem('bgl_role', currentUserRole); } catch(e) {}
-      applyRoleUI();
-      fetchLiveSnapshot();
-    }
 
     function logoutUser() {
       currentUserRole = null;
@@ -292,17 +290,17 @@
 
     async function fetchLiveSnapshot() {
       try {
-        const res = await fetch('/api/snapshot');
+        var res = await fetch('/api/snapshot');
         scadaData = await res.json();
         refreshUI();
       } catch(e) {
-        document.getElementById('statusText').innerText = "⚠️ Server connecting... (" + e.message + ")";
+        document.getElementById('statusText').innerText = '⚠️ Server connecting... (' + e.message + ')';
       }
     }
 
     function refreshUI() {
       if (!scadaData || !scadaData.assets) return;
-      document.getElementById('statusText').innerText = "⚡ SCADA Active (" + Object.keys(scadaData.assets).length + " Assets, " + (scadaData.pipelines ? scadaData.pipelines.length : 0) + " Links)";
+      document.getElementById('statusText').innerText = '⚡ SCADA Active (' + Object.keys(scadaData.assets).length + ' Assets, ' + (scadaData.pipelines ? scadaData.pipelines.length : 0) + ' Links)';
       updateKPIs();
       updateDropdowns();
       renderPAndID();
@@ -313,7 +311,7 @@
       Object.values(scadaData.assets).forEach(function(a) {
         var t = (a.type || '').toUpperCase();
         if (t === 'DRS') drs++;
-        else if (t.includes('VALVE') || t === 'VC') vc++;
+        else if (t.indexOf('VALVE') !== -1 || t === 'VC') vc++;
         else if (t === 'SR') sr++;
         else if (t === 'IPNG') ipng++;
         else if (t === 'CPNG') cpng++;
@@ -327,7 +325,9 @@
 
     function updateDropdowns() {
       var ids = Object.keys(scadaData.assets).sort();
-      var html = ids.map(id => '<option value="' + id + '">' + id + ' (' + scadaData.assets[id].type + ')</option>').join('');
+      var html = ids.map(function(id) {
+        return '<option value="' + id + '">' + id + ' (' + scadaData.assets[id].type + ')</option>';
+      }).join('');
       document.getElementById('linkSource').innerHTML = html;
       document.getElementById('linkTarget').innerHTML = html;
       document.getElementById('fAssetParent').innerHTML = '<option value="">-- None --</option>' + html;
@@ -355,4 +355,291 @@
         document.getElementById('fAssetPress').value = 0.0; document.getElementById('fAssetLoc').value = ''; document.getElementById('fAssetDetails').value = '';
       }
     }
-    function closeAssetModal() { document.getElementById('asset
+    function closeAssetModal() { document.getElementById('assetModal').style.display = 'none'; }
+
+    async function saveSingleAsset() {
+      var payload = {
+        id: document.getElementById('fAssetId').value.trim(), name: document.getElementById('fAssetName').value.trim(),
+        type: document.getElementById('fAssetType').value, tag: document.getElementById('fAssetTag').value.trim(),
+        status: document.getElementById('fAssetStatus').value, pressure: parseFloat(document.getElementById('fAssetPress').value) || 0.0,
+        location: document.getElementById('fAssetLoc').value.trim(), details: document.getElementById('fAssetDetails').value.trim(),
+        parent_id: document.getElementById('fAssetParent').value
+      };
+      if (!payload.id) { alert('Asset ID ivvali!'); return; }
+      var res = await fetch('/api/asset/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+      var data = await res.json();
+      if (data.success) { scadaData = data; closeAssetModal(); refreshUI(); if (document.getElementById('managerModal').style.display === 'flex') renderAssetTable(); }
+      else alert(data.message);
+    }
+
+    async function deleteSingleAsset(id) {
+      if (!confirm('Asset ' + id + ' ni delete cheyala?')) return;
+      var res = await fetch('/api/asset/delete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id }) });
+      scadaData = await res.json(); refreshUI(); renderAssetTable();
+    }
+
+    function openManagerModal() { document.getElementById('managerModal').style.display = 'flex'; renderAssetTable(); }
+    function closeManagerModal() { document.getElementById('managerModal').style.display = 'none'; }
+
+    function renderAssetTable() {
+      var q = (document.getElementById('searchAssetInput').value || '').toLowerCase();
+      var rows = Object.values(scadaData.assets).filter(function(a) {
+        return a.id.toLowerCase().indexOf(q) !== -1 || (a.name || '').toLowerCase().indexOf(q) !== -1 || (a.type || '').toLowerCase().indexOf(q) !== -1 || (a.location || '').toLowerCase().indexOf(q) !== -1;
+      });
+      document.getElementById('assetTableBody').innerHTML = rows.map(function(a) {
+        return '<tr><td><b>' + a.id + '</b></td><td>' + (a.name || '') + '</td><td>' + (a.type || '') + '</td><td>' + (a.tag || '') + '</td><td style="color:' + (a.status==='ON'?'#16a34a':'#ef4444') + ';font-weight:800;">' + a.status + '</td><td>' + (a.location || '') + '</td><td><button class="act-btn act-edit" data-id="' + a.id + '" onclick="openAssetModal(this.getAttribute(\'data-id\'))">✏️ Edit</button><button class="act-btn act-del" data-id="' + a.id + '" onclick="deleteSingleAsset(this.getAttribute(\'data-id\'))">🗑️ Delete</button></td></tr>';
+      }).join('');
+    }
+
+    async function submitLinkPipeline(isDelete) {
+      var src = document.getElementById('linkSource').value, tgt = document.getElementById('linkTarget').value;
+      var res = await fetch(isDelete ? '/api/pipeline/delete' : '/api/pipeline/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ source_id: src, target_id: tgt }) });
+      var data = await res.json(); alert(data.message);
+      if (data.success) { scadaData = data; refreshUI(); }
+    }
+
+    async function handleExcelUpload(event) {
+      var file = event.target.files[0]; if (!file) return;
+      var fd = new FormData(); fd.append('file', file);
+      var res = await fetch('/api/upload-excel', { method: 'POST', body: fd });
+      var data = await res.json(); alert(data.message);
+      if (data.success) { scadaData = data; refreshUI(); }
+      event.target.value = '';
+    }
+
+    async function loadDefaultData() {
+      if (!confirm('Default network load cheyala?')) return;
+      var res = await fetch('/api/load-default', { method: 'POST' });
+      scadaData = await res.json(); refreshUI();
+    }
+
+    async function toggleAsset(id, curStatus) {
+      if (currentUserRole !== 'admin') { alert('Admin access required!'); return; }
+      var res = await fetch('/api/toggle', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ asset_id: id, status: curStatus === 'ON' ? 'OFF' : 'ON' }) });
+      scadaData = await res.json(); refreshUI();
+    }
+
+    async function promptPressure(drsId, curP) {
+      if (currentUserRole !== 'admin') return;
+      var n = prompt('Enter new pressure for ' + drsId + ' (Bar):', curP);
+      if (n !== null && !isNaN(parseFloat(n))) {
+        var res = await fetch('/api/pressure', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ drs_id: drsId, pressure: parseFloat(n) }) });
+        scadaData = await res.json(); refreshUI();
+      }
+    }
+
+    async function triggerReset() {
+      if (currentUserRole !== 'admin') return;
+      var res = await fetch('/api/reset', { method: 'POST' });
+      scadaData = await res.json(); refreshUI();
+    }
+
+    function openAssetMap(evt, id) {
+      if (evt) evt.stopPropagation();
+      var a = scadaData && scadaData.assets ? scadaData.assets[id] : null;
+      var loc = a && a.location ? a.location.trim() : '';
+      if (!loc) {
+        if (currentUserRole === 'admin') {
+          if (confirm(id + ' ki Location set cheyaledhu. Ippude set cheyala?')) openAssetModal(id);
+        } else {
+          alert('Location available ga ledhu!');
+        }
+        return;
+      }
+      var url = loc.indexOf('http') === 0 ? loc : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc);
+      window.open(url, '_blank');
+    }
+
+    function renderPipe(d, active) {
+      return '<path d="' + d + '" class="' + (active ? 'pipe-active' : 'pipe-inactive') + '"/>' + (active ? '<path d="' + d + '" class="pipe-active-pulse"/>' : '');
+    }
+
+    function renderDRSBox(x, y, id, A, S) {
+      var d = A[id]; if (!d) return '';
+      var isOn = d.status === 'ON';
+      var locLabel = d.location ? ('📍 ' + d.location.slice(0, 22)) : '📍 Map Location';
+      return '<g>' +
+        '<rect x="' + (x-130) + '" y="' + (y-5) + '" width="260" height="70" rx="14" fill="#fffbeb" stroke="' + (isOn?'#f59e0b':'#ef4444') + '" stroke-width="2.8"/>' +
+        '<text x="' + (x-115) + '" y="' + (y+16) + '" font-family="var(--font-tech)" font-weight="800" font-size="14" fill="#92400e" data-id="' + id + '" data-p="' + (d.pressure||4) + '" onclick="promptPressure(this.getAttribute(\'data-id\'), this.getAttribute(\'data-p\'))" style="cursor:pointer;">⚡ ' + id + ' ' + (d.name||'').slice(0,15) + '</text>' +
+        '<text x="' + (x-115) + '" y="' + (y+33) + '" font-family="var(--font-tech)" font-weight="700" font-size="11" fill="#b45309" data-id="' + id + '" data-p="' + (d.pressure||4) + '" onclick="promptPressure(this.getAttribute(\'data-id\'), this.getAttribute(\'data-p\'))" style="cursor:pointer;">[' + (d.pressure||4) + ' Bar] ✏️ Set</text>' +
+        '<text class="loc-link" x="' + (x-115) + '" y="' + (y+53) + '" font-size="10.5" font-weight="800" fill="#0284c7" data-id="' + id + '" onclick="openAssetMap(event, this.getAttribute(\'data-id\'))" style="cursor:pointer;text-decoration:underline;">' + locLabel + '</text>' +
+        '<g class="pid-valve-node" data-id="' + id + '" data-st="' + d.status + '" onclick="toggleAsset(this.getAttribute(\'data-id\'), this.getAttribute(\'data-st\'))">' +
+          '<rect x="' + (x+52) + '" y="' + (y+12) + '" width="64" height="26" rx="13" fill="' + (isOn?'#16a34a':'#ef4444') + '"/>' +
+          '<text x="' + (x+84) + '" y="' + (y+29) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ' + d.status + '</text>' +
+        '</g>' +
+        renderPipe('M ' + x + ' ' + (y+65) + ' L ' + x + ' 105', isOn) +
+      '</g>';
+    }
+
+    function renderValve(x, y, id, A, S, F) {
+      var v = A[id]; if (!v) return '';
+      var isOn = v.status === 'ON', hasGas = S[id], src = F[id];
+      var stroke = isOn ? (hasGas ? '#10b981' : '#f59e0b') : '#ef4444';
+      var disp = id.replace(/^(CG|S\d+)-/, '');
+      var locLabel = v.location ? ('📍 ' + v.location.slice(0, 18)) : '📍 Location';
+      return '<g class="pid-valve-node" data-id="' + id + '" data-st="' + v.status + '" onclick="toggleAsset(this.getAttribute(\'data-id\'), this.getAttribute(\'data-st\'))">' +
+        '<rect x="' + (x-105) + '" y="' + (y-25) + '" width="210" height="58" rx="20" fill="#fff" stroke="' + stroke + '" stroke-width="2.8"/>' +
+        '<circle cx="' + (x-85) + '" cy="' + (y-5) + '" r="9" fill="' + stroke + '"/>' +
+        '<text x="' + (x-69) + '" y="' + (y-7) + '" font-family="var(--font-tech)" font-size="12.5" font-weight="800" fill="#0f172a">' + disp + '</text>' +
+        '<text x="' + (x-69) + '" y="' + (y+8) + '" font-size="10" font-weight="700" fill="#64748b">' + (v.tag||'125 MM') + '</text>' +
+        '<text class="loc-link" x="' + (x-69) + '" y="' + (y+24) + '" font-size="10" font-weight="800" fill="#0284c7" data-id="' + id + '" onclick="openAssetMap(event, this.getAttribute(\'data-id\'))" style="cursor:pointer;text-decoration:underline;">' + locLabel + '</text>' +
+        '<rect x="' + (x+41) + '" y="' + (y-14) + '" width="56" height="25" rx="12" fill="' + (isOn?'#16a34a':'#ef4444') + '"/>' +
+        '<text x="' + (x+69) + '" y="' + (y+3) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="11" font-weight="800" fill="#fff">● ' + v.status + '</text>' +
+        (hasGas && src ? '<text x="' + x + '" y="' + (y+44) + '" text-anchor="middle" font-family="var(--font-tech)" font-size="9.5" font-weight="800" fill="#b45309">⚡ Fed by ' + src.id + ' (' + src.pressure + ' Bar)</text>' : '') +
+      '</g>';
+    }
+
+    function renderCard(px, ty, id, side, A, S) {
+      var c = A[id]; if (!c) return '';
+      var on = Boolean(S[id]), t = (c.type||'').toUpperCase();
+      var bdr = '#a855f7', bg = '#faf5ff', sym = '🏠';
+      if (t.indexOf('IPNG') !== -1) { bdr = '#0284c7'; bg = '#f0f9ff'; sym = '🏭'; }
+      else if (t.indexOf('CPNG') !== -1) { bdr = '#f97316'; bg = '#fff7ed'; sym = '🏨'; }
+      var endX = side === 'left' ? px - 55 : px + 55;
+      var cx = side === 'left' ? endX - 260 : endX;
+      var nm = (c.name || id).slice(0, 22);
+      var locLabel = c.location ? ('📍 ' + c.location.slice(0, 22)) : '📍 View Map';
+      return renderPipe('M ' + px + ' ' + ty + ' L ' + endX + ' ' + ty, on) +
+        '<circle cx="' + px + '" cy="' + ty + '" r="4.5" fill="#f59e0b"/>' +
+        '<g data-id="' + id + '" onclick="if(currentUserRole===\'admin\') openAssetModal(this.getAttribute(\'data-id\'))" style="cursor:pointer;">' +
+          '<rect x="' + cx + '" y="' + (ty-28) + '" width="260" height="68" rx="8" fill="' + (on?bg:'#f8fafc') + '" stroke="' + (on?bdr:'#cbd5e1') + '" stroke-width="2"/>' +
+          '<text x="' + (cx+10) + '" y="' + (ty-10) + '" font-family="var(--font-tech)" font-size="12.5" font-weight="800" fill="' + (on?'#0f172a':'#64748b') + '">' + sym + ' ' + nm + '</text>' +
+          '<text x="' + (cx+10) + '" y="' + (ty+6) + '" font-family="var(--font-tech)" font-size="10.5" font-weight="700" fill="#0284c7">No: ' + c.id + ' • ' + (c.tag||'40') + '</text>' +
+          '<text class="loc-link" x="' + (cx+10) + '" y="' + (ty+24) + '" font-size="10.5" font-weight="800" fill="#0284c7" data-id="' + id + '" onclick="openAssetMap(event, this.getAttribute(\'data-id\'))" style="cursor:pointer;text-decoration:underline;">' + locLabel + '</text>' +
+          '<text x="' + (cx+195) + '" y="' + (ty+24) + '" font-size="10.5" font-weight="800" fill="' + (on?'#16a34a':'#ef4444') + '">● ' + (on?'ON':'OFF') + '</text>' +
+        '</g>';
+    }
+
+    function renderBadge(x, lbl, live) {
+      return renderPipe('M ' + x + ' 105 L ' + x + ' 125', live) + renderPipe('M ' + x + ' 149 L ' + x + ' 185', live) +
+        '<g><rect x="' + (x-65) + '" y="125" width="130" height="24" rx="12" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.8"/>' +
+        '<text x="' + x + '" y="141" text-anchor="middle" font-family="var(--font-tech)" font-size="12" font-weight="800" fill="#0284c7">' + lbl + '</text></g>';
+    }
+
+    function renderPAndID() {
+      try {
+        if (!scadaData || !scadaData.assets) return;
+        var A = scadaData.assets, S = scadaData.supply || {}, F = scadaData.fed_by || {};
+        var pipes = scadaData.pipelines || [];
+
+        var adj = {};
+        Object.keys(A).forEach(function(k) { adj[k] = []; });
+        pipes.forEach(function(p) {
+          if (adj[p[0]]) adj[p[0]].push(p[1]);
+          if (adj[p[1]]) adj[p[1]].push(p[0]);
+        });
+
+        var drsList = Object.values(A).filter(function(a) { return (a.type||'').toUpperCase() === 'DRS'; }).sort(function(a,b) { return a.id.localeCompare(b.id); });
+        drsPositions = {};
+
+        var rendered = new Set();
+        var colX = 600;
+        var maxY = 1300;
+        var svgElements = '';
+
+        drsList.forEach(function(drs) {
+          rendered.add(drs.id);
+          var branches = (adj[drs.id] || []).filter(function(nb) { return !rendered.has(nb) && ((A[nb] && A[nb].type) || '').toUpperCase() !== 'DRS'; });
+          var startX = colX;
+          var branchXList = [];
+
+          if (branches.length === 0) {
+            branchXList.push(colX);
+            colX += 800;
+          } else {
+            branches.forEach(function(bId, bIdx) {
+              var bx = colX;
+              branchXList.push(bx);
+              svgElements += renderBadge(bx, '⚡ LINE ' + (bIdx + 1), S[drs.id]);
+
+              var q = [bId];
+              var curY = 185;
+              var sideToggle = 'right';
+              while (q.length > 0) {
+                var curr = q.shift();
+                if (rendered.has(curr) || !A[curr]) continue;
+                rendered.add(curr);
+                var cAsset = A[curr];
+                var cType = (cAsset.type || '').toUpperCase();
+
+                if (cType.indexOf('VALVE') !== -1 || cType === 'VC') {
+                  svgElements += renderValve(bx, curY, curr, A, S, F);
+                  var nextNodes = (adj[curr] || []).filter(function(n) { return !rendered.has(n) && ((A[n] && A[n].type) || '').toUpperCase() !== 'DRS'; });
+                  var childConsumers = nextNodes.filter(function(n) {
+                    var nt = ((A[n] && A[n].type) || '').toUpperCase();
+                    return nt.indexOf('VALVE') === -1 && nt !== 'VC';
+                  });
+                  var childValves = nextNodes.filter(function(n) {
+                    var nt = ((A[n] && A[n].type) || '').toUpperCase();
+                    return nt.indexOf('VALVE') !== -1 || nt === 'VC';
+                  });
+
+                  var tapY = curY + 75;
+                  childConsumers.forEach(function(cid, cIdx) {
+                    rendered.add(cid);
+                    var side = (cIdx % 2 === 0) ? 'left' : 'right';
+                    svgElements += renderPipe('M ' + bx + ' ' + (curY+33) + ' L ' + bx + ' ' + tapY, S[curr] && cAsset.status === 'ON');
+                    svgElements += renderCard(bx, tapY, cid, side, A, S);
+                    if (cIdx % 2 === 1) tapY += 85;
+                  });
+                  if (childConsumers.length % 2 === 1) tapY += 85;
+
+                  var nextY = Math.max(curY + 130, tapY + 25);
+                  if (childValves.length > 0) {
+                    svgElements += renderPipe('M ' + bx + ' ' + (curY+33) + ' L ' + bx + ' ' + nextY, S[curr] && cAsset.status === 'ON');
+                    childValves.forEach(function(cv) { q.push(cv); });
+                  }
+                  curY = nextY;
+                } else {
+                  svgElements += renderCard(bx, curY, curr, sideToggle, A, S);
+                  sideToggle = (sideToggle === 'right') ? 'left' : 'right';
+                  curY += 90;
+                }
+                if (curY > maxY) maxY = curY + 200;
+              }
+              colX += 780;
+            });
+          }
+
+          var endX = branchXList[branchXList.length - 1];
+          var centerDrsX = Math.round((startX + endX) / 2);
+          drsPositions[drs.id] = centerDrsX;
+
+          svgElements += renderDRSBox(centerDrsX, 25, drs.id, A, S);
+          if (branchXList.length > 1) {
+            svgElements += renderPipe('M ' + startX + ' 105 L ' + endX + ' 105', S[drs.id]);
+          }
+          colX += 350;
+        });
+
+        var jumpContainer = document.getElementById('drsJumpButtons');
+        if (jumpContainer) {
+          jumpContainer.innerHTML = drsList.map(function(d) {
+            return '<button type="button" class="zoom-btn" data-id="' + d.id + '" onclick="focusStation(this.getAttribute(\'data-id\'))">⚡ ' + d.id + '</button>';
+          }).join('');
+        }
+
+        var svgW = Math.max(8800, colX + 600);
+        var svg = '<svg id="mainScadaSvg" viewBox="0 0 ' + svgW + ' ' + maxY + '" width="' + svgW + 'px" height="' + maxY + 'px" style="background:#fff;">' +
+          '<g id="panZoomGroup" transform="translate(' + panX + ',' + panY + ') scale(' + currentZoom + ')">' + svgElements + '</g></svg>';
+        document.getElementById('viewport').innerHTML = svg;
+      } catch(err) {
+        console.error('Render error:', err);
+      }
+    }
+
+    window.onload = function() {
+      setupViewportControls();
+      try {
+        var savedRole = localStorage.getItem('bgl_role');
+        if (savedRole === 'admin' || savedRole === 'user') {
+          currentUserRole = savedRole;
+          document.getElementById('loginOverlay').style.display = 'none';
+          applyRoleUI();
+        }
+      } catch(e) {}
+      fetchLiveSnapshot();
+    };
+  </script>
+</body>
+</html>
